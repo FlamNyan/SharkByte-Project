@@ -2,7 +2,7 @@ import time
 import textwrap
 import random
 
-debt = str(random.randint(250, 350))
+debt = random.randint(250, 350)
 
 def slow_print(text, delay=0.03):
     # Function that prints text character by character
