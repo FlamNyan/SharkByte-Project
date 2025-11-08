@@ -1,4 +1,3 @@
-
 Sword = {
     "name": "Sword",
     "Type": "weapon",
@@ -19,4 +18,4 @@ item = [Sword, Armor]
 
 # Is this the same file?
 
-#Changed file
+# Changed file

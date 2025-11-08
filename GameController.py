@@ -1,5 +1,8 @@
 import time
 import textwrap
+import random
+
+debt = str(random.randint(250, 350))
 
 def slow_print(text, delay=0.03):
     # Function that prints text character by character
@@ -34,7 +37,7 @@ def show_intro():
 
     print()
     print_block('???: "You remember why you’re here, right? '
-                'Not for glory. Not for honor. For debt. 200 gold to be exact..."', delay=0.04)
+                f'Not for glory. Not for honor. For debt. {debt} gold to be exact..."', delay=0.04)
     time.sleep(0.7)
 
     print()
@@ -68,7 +71,7 @@ def show_intro():
 
     # SLOW-PRINT THE PROMPT, THEN GET INPUT NORMALLY
     print()
-    player_name = slow_input('???: "Whether you live or die, who do you wish to be known as?"', delay=0.04)
+    player_name = slow_input('???: "Whether you live or die, who do you wish to be known as?"', delay=0.04).strip()
     time.sleep(0.7)
 
     print()

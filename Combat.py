@@ -1,6 +1,3 @@
-
-#Combat Class
-
 class Combat:
 
     def totalDamage(self, item, MainCharacter):
