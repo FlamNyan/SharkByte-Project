@@ -9,6 +9,12 @@ def slow_print(text, delay=0.03):
         time.sleep(delay)
     print()  # newline at the end
 
+def slow_input(prompt, delay=0.03):
+    # Slow print, then input
+    slow_print(prompt, delay=delay)
+    return input("> ")
+
+
 def print_block(text, delay=0.03):
     # Slow print function, but for longer text
     wrapped = textwrap.fill(text, width=80)
@@ -62,8 +68,7 @@ def show_intro():
 
     # SLOW-PRINT THE PROMPT, THEN GET INPUT NORMALLY
     print()
-    slow_print('???: "What shall be your battle name?"', delay=0.04)
-    player_name = input("> ")  # this returns the actual string
+    slow_input('???: "What shall be your battle name?"', delay=0.04)
     time.sleep(0.7)
 
     print()
