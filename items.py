@@ -15,4 +15,8 @@ Armor = {
 }
 
 
+<<<<<<< Updated upstream
 item = [Sword, Armor]
+=======
+item = [Sword, Armor]
+>>>>>>> Stashed changes

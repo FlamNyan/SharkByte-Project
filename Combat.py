@@ -3,10 +3,15 @@
 
 class Combat:
 
-    def totalDamage():
+    def totalDamage(self, item, MainCharacter):
     
+<<<<<<< Updated upstream
 
         pass
+=======
+        damage = 
+
+>>>>>>> Stashed changes
     
 
           

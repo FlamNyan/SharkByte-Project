@@ -92,12 +92,12 @@ def main():
 
     
 
-    Hero1 = MainCharacter("Player")
+   # Hero1 = MainCharacter("Player")
 
-    Cyclops = Enemy ("Cyclops", 120, 10 )
+    #Cyclops = Enemy ("Cyclops", 120, 10 )
 
-    Clerk1 = Shopkeeper("Joe", greedy)
-    Clerk2 = Shopkeeper("Brok", Polite)
+    #Clerk1 = Shopkeeper("Joe", greedy)
+    #Clerk2 = Shopkeeper("Brok", Polite)
 
     
-
+    pass
