@@ -34,7 +34,7 @@ def show_intro():
 
     print()
     print_block('???: "You remember why you’re here, right? '
-                'Not for glory. Not for honor. For debt."', delay=0.04)
+                'Not for glory. Not for honor. For debt. 200 gold to be exact..."', delay=0.04)
     time.sleep(0.7)
 
     print()
@@ -68,7 +68,7 @@ def show_intro():
 
     # SLOW-PRINT THE PROMPT, THEN GET INPUT NORMALLY
     print()
-    player_name = slow_input('???: "What shall be your battle name?"', delay=0.04)
+    player_name = slow_input('???: "Whether you live or die, who do you wish to be known as?"', delay=0.04)
     time.sleep(0.7)
 
     print()
