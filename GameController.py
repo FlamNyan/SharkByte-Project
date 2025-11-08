@@ -68,7 +68,7 @@ def show_intro():
 
     # SLOW-PRINT THE PROMPT, THEN GET INPUT NORMALLY
     print()
-    slow_input('???: "What shall be your battle name?"', delay=0.04)
+    player_name = slow_input('???: "What shall be your battle name?"', delay=0.04)
     time.sleep(0.7)
 
     print()
