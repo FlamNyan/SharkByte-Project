@@ -11,22 +11,7 @@ client = OpenAI(api_key= api_key)
 
 
 
-class MainCharacter:
 
-    def __init__(self, name):
-    
-        self.name = name
-        self.health = 100
-        self.money = 45
-        self.armor = 20
-
-class Enemy:
-
-    def __init__(self, name, health, armor):
-
-        self.name = name
-        self.health = health
-        self.armor = armor
 
 class Shopkeeper:
 
@@ -44,7 +29,12 @@ def main():
 
     print("")
 
-Hero1 = MainCharacter("Player")
+    Hero1 = MainCharacter("Player")
 
-Cyclops = Enemy ("Cyclops", 120, 10 )
+    Cyclops = Enemy ("Cyclops", 120, 10 )
+
+    Clerk1 = Shopkeeper("Joe", greedy)
+    Clerk2 = Shopkeeper("Brok", Polite)
+
+    
 
