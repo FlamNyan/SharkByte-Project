@@ -3,10 +3,10 @@
 
 class Combat:
 
-    def totalDamage(self, item, MainCharacter):
+    def totalDamage():
     
-        pass
 
+        pass
     
 
           
