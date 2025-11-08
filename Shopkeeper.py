@@ -1,21 +1,15 @@
-
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import random
+import time 
 
 load_dotenv()  # load API key 
 api_key = os.getenv("OPENAI_API_KEY")
 
-client = OpenAI(api_key= api_key)
-
-
-
-
-
+client = OpenAI(api_key = api_key)
 
 class Shopkeeper:
-    
 
     def __init__(self, name, personality):
 
@@ -58,7 +52,7 @@ class Shopkeeper:
 
 
 
-greedy = {
+Greedy = {
         "name": "Greedy Merchant Joe",
         "description": "Always tryng to get the most amount of money out of the player posssible",
         "style": "Quick-witted, arrogant, does not give up easy",
@@ -76,15 +70,20 @@ Polite = {
 
     }
 
-personalities = [greedy, Polite]
+personalities = [Greedy, Polite]
 
+def start_shop_timer():
+    start_time = time.perf_counter()
+    time_now = time.perf_counter()
+    elapsed_time = time_now - start_time
 
+    if (elapsed_time >= 30):
+        shop_eviction()
 
-    
-        
-    
-        
-    
+def shop_eviction():
+
+    # holds automated kick out text and ends the shopkeeper functions
+    pass
 
 
 
@@ -96,7 +95,7 @@ def main():
 
     #Cyclops = Enemy ("Cyclops", 120, 10 )
 
-    #Clerk1 = Shopkeeper("Joe", greedy)
+    #Clerk1 = Shopkeeper("Joe", Greedy)
     #Clerk2 = Shopkeeper("Brok", Polite)
 
     

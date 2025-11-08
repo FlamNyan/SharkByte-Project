@@ -37,7 +37,7 @@ def show_intro():
 
     print()
     print_block('???: "You remember why you’re here, right? '
-                'Not for glory. Not for honor. For debt. ' + debt + ' gold to be exact..."', delay=0.04)
+                f'Not for glory. Not for honor. For debt. {debt} gold to be exact..."', delay=0.04)
     time.sleep(0.7)
 
     print()

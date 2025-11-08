@@ -1,4 +1,3 @@
-
 Sword = {
     "name": "Sword",
     "Type": "weapon",
