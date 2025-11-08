@@ -77,7 +77,7 @@ def start_shop_timer():
     time_now = time.perf_counter()
     elapsed_time = time_now - start_time
 
-    if (elapsed_time >= 30):
+    if (elapsed_time >= 30): # placeholder amount of time (will change likely to 60 seconds)
         shop_eviction()
 
 def shop_eviction():
