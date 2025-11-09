@@ -5,6 +5,7 @@ class Character:
         self.money = money
         self.armor = armor
         self.damage = damage
+        self.inventory = []
         # Vigor resource used by combat (starts at 0)
         self.vigor = 0
 
