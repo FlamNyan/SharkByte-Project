@@ -8,6 +8,7 @@ class Character:
         self.money = money
         self.armor = armor
         self.damage = damage
+        self.inventory = []
 
 
 

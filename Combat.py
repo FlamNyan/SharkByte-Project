@@ -3,15 +3,36 @@
 
 class Combat:
 
-    def totalDamage(self, item, MainCharacter):
-    
+    def totalDamage(self, item, Character):
 
-        pass
+        weapon = None
+
+        for item in Character.inventory:
+            if item.get("Type") == "weapon":
+                weapon = item
+                break
+        
+        if weapon:
+            total_damage = getattr(Character, "damage", 0) + weapon.get("Damage", 0)
+        else:
+            total_damage = getattr(Character, "damage", 0)
+
+        return total_damage
+        
     
 
           
     
-    def TurnAction(self, playerAction, enemyAction, playerHealth, enemyHealth):
+    def TurnAction(self, playerAction, enemyAction, playerHealth, enemyHealth, enemyItem, playerItem, player, enemy):
+
+        """
+        playerAction, enemyAction: 'a' = attack, 'b' = block
+        player, enemy: objects with .health attribute
+        playerItem, enemyItem: item dictionaries (weapons)
+        """
+
+        playerDamage = self.totalDamage(playerItem, player)
+        enemyDamage = self.totalDamage(enemyItem, enemy) if enemyItem else 10
 
         if playerAction == "a" and enemyAction == "a":
             playerHealth = playerHealth
@@ -24,8 +45,8 @@ class Combat:
 
         elif playerAction == "a" and enemyAction == "b":
             playerHealth == playerHealth
-            enemyHealth -= 20
+            enemyHealth -= playerDamage
 
         elif playerAction == "b" and enemyAction == "a":
-            playerHealth -= 20
+            playerHealth -= enemyDamage
             enemyHealth == enemyHealth

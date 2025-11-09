@@ -1,103 +1,134 @@
 
-from openai import OpenAI
+from google import genai
+import google.generativeai as genai
 from dotenv import load_dotenv
+from Characters import Character
 import os
 import random
 
-load_dotenv()  # load API key 
-api_key = os.getenv("OPENAI_API_KEY")
+# ------------------- Setup -------------------
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-client = OpenAI(api_key= api_key)
+var = 0
 
-
-
-
-
-
+# ------------------- Shopkeeper Class -------------------
 class Shopkeeper:
-    
-
     def __init__(self, name, personality):
-
-        """
-        personality: dictionary with keys:
-        'name' , 'description' , 'style' , 'cathphrases'
-        """
-
         self.name = name
         self.personality = personality
+        self.is_accepted = False
 
+    def negotiate(self, item_name, price, offer, prevoffer):
+        global var
+        var += 1
+        catch = random.choice(self.personality["catchphrases"])
 
-    def negotiate(self, item, price, base_price):
-        catch = random.choide(self.personality["catchphrases"])
+        mood = "Default personality"
+
+        if var <= 2:
+            mood = "Default personality"
+
+        elif var <= 4:
+            mood = "Slightly annoyed"
         
+        elif var <= 6:
+            mood = "Very annoyed"
+
+        elif var == 7:
+            mood = "Refuses to negotiate further"
+
         prompt = f"""
         You are a shopkeeper named {self.name}.
         Personality: {self.personality['name']} - {self.personality['description']}.
-        Communication style: {self.personality['style']}.
-        Catch Phrase: "{catch}"
+        Style: {self.personality['style']}.
+        Catchphrase: "{catch}"
+        Current mood: {mood}.
 
-        The player is offering you {price} gold for a {item}.
-        The base price is {base_price} gold.
-
-        You are in a fantasy world, respond in character and negotiate naturally.
-        You may counter-offer, compliment, or be rude (but no cursing).
-        End your response by stating your new price or if you accept.
+        The player is offering {offer} gold for a {item_name}, base price {price} gold.
+        Respond in character and negotiate naturally.
+        Be polite or aggressive depending on your personality.
+        If your {prevoffer} matches the player's offer, you should accept the deal.
+        Your {mood} should influence your responses and negotiation preferences.
+        End your message by stating your new price or if you accept the deal.
+        If the offer is acceptable, clearly say the words "accept" or "deal" to make sure you wanna sell it, Otherwise do not say them.
         """
 
-        response = client.chat.completions.create(
-            model="gpt-5",
-            messages=[
-                {"role": "system", "content": "You are a shopkeeper in a fantasy RPG."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.8
-        )
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        text = response.text.strip()
 
-        return response.choices[0].message.content.strip()
+        # Detect acceptance
+        if "accept" in text.lower() or "deal" in text.lower():
+            self.is_accepted = True
 
+        return text
 
+    def sell(self, character):
+        global var
+        var = 0
+        print(f"{self.name}: Welcome, traveler! Take a look at my wares:")
+        for i, itm in enumerate(items, 1):
+            print(f"{i}. {itm['name']}")
 
+        try:
+            choice = int(input("Enter the number of the item you want to buy: ")) - 1
+            offer = int(input("How much gold do you offer? "))
+        except ValueError:
+            print("Invalid input.")
+            return
+
+        if not (0 <= choice < len(items)):
+            print("Invalid choice.")
+            return
+
+        selected_item = items[choice]
+        prevoffer = 0
+        while not self.is_accepted and var <= 7:
+            response_text = self.negotiate(selected_item['name'], selected_item['Price'], offer, prevoffer)
+            print(f"{self.name}: {response_text}")
+
+            if self.is_accepted:
+                if character.money >= offer:
+                    character.money -= offer
+                    character.inventory.append(selected_item)
+                    print(f"You bought {selected_item['name']} for {offer} gold. Remaining gold: {character.money}")
+                else:
+                    print("You don't have enough gold!")
+                break
+            else:
+                try:
+                    offer = int(input("Make a new offer: "))
+                except ValueError:
+                    print("Invalid number, ending negotiation.")
+                    break
+
+# ------------------- Personalities -------------------
 greedy = {
-        "name": "Greedy Merchant Joe",
-        "description": "Always tryng to get the most amount of money out of the player posssible",
-        "style": "Quick-witted, arrogant, does not give up easy",
-        "catchphrases": ["Nice try kid", "You thought you had me huh?"]
+    "name": "Greedy Merchant Joe",
+    "description": "Always trying to get the most money possible.",
+    "style": "Arrogant and quick-witted.",
+    "catchphrases": ["Nice try, kid.", "You thought you had me, huh?"]
+}
 
+polite = {
+    "name": "Town Merchant Brok",
+    "description": "Kind and fair, often lowers prices for travelers.",
+    "style": "Warm and polite.",
+    "catchphrases": ["I'm sure we can work something out.", "Good luck on your adventure!"]
+}
 
-    },
+# ------------------- Items -------------------
+Sword = {"name": "Sword", "Type": "weapon", "Damage": 5, "Price": 10}
+Armor = {"name": "Armor", "Type": "defense", "Defense": 25, "Price": 40}
+items = [Sword, Armor]
 
-Polite = {
-        "name": "Town Merchant Brok",
-        "description": "Generous and willing to lower his prices, polite as wel",
-        "style": "warm, kind, easy to negotiate with",
-        "catchphrases": ["I'm sure we can work something out", "Good luck on your adventure"]
-
-
-    }
-
-personalities = [greedy, Polite]
-
-
-
-    
-        
-    
-        
-    
-
-
-
+# ------------------- Main -------------------
 def main():
+    print("Welcome to the Shopkeeper Demo!")
+    hero = Character("Hero", 100, 50, 10, 50)
+    clerk = Shopkeeper("Brok", polite)
+    clerk.sell(hero)
 
-    
-
-   # Hero1 = MainCharacter("Player")
-
-    #Cyclops = Enemy ("Cyclops", 120, 10 )
-
-    #Clerk1 = Shopkeeper("Joe", greedy)
-    #Clerk2 = Shopkeeper("Brok", Polite)
-
-    
-    pass
+if __name__ == "__main__":
+    main()
