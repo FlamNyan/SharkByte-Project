@@ -20,6 +20,7 @@ class Shopkeeper:
         self.name = name
         self.personality = personality
         self.is_accepted = False
+        self.last_counter_offer = None
 
     def negotiate(self, item_name, price, offer, prevoffer):
         global var
@@ -48,9 +49,10 @@ class Shopkeeper:
         Current mood: {mood}.
 
         The player is offering {offer} gold for a {item_name}, base price {price} gold.
+        Previous counter-offer you made: {self.last_counter_offer if self.last_counter_offer else "None"}.
         Respond in character and negotiate naturally.
         Be polite or aggressive depending on your personality.
-        If your {prevoffer} matches the player's offer, you should accept the deal.
+        Also consider the player's previous offer {prevoffer}. If it's 0 disregard it.
         Your {mood} should influence your responses and negotiation preferences.
         End your message by stating your new price or if you accept the deal.
         If the offer is acceptable, clearly say the words "accept" or "deal" to make sure you wanna sell it, Otherwise do not say them.
@@ -58,7 +60,12 @@ class Shopkeeper:
 
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
+        prevoffer = offer
         text = response.text.strip()
+        import re
+        numbers = re.findall(r'\d+', text)
+        if numbers:
+            self.last_counter_offer = int(numbers[-1])
 
         # Detect acceptance
         if "accept" in text.lower() or "deal" in text.lower():
@@ -69,6 +76,7 @@ class Shopkeeper:
     def sell(self, character):
         global var
         var = 0
+        self.last_offer = None
         print(f"{self.name}: Welcome, traveler! Take a look at my wares:")
         for i, itm in enumerate(items, 1):
             print(f"{i}. {itm['name']}")
