@@ -1,22 +1,15 @@
-
 Sword = {
     "name": "Sword",
-    "Type": "weapon",
-    "Damage": 5,
-    "Price": 10
-
+    "type": "weapon",
+    "damage": 5,
+    "price": 10,
 }
 
 Armor = {
     "name": "Armor",
-    "Type": "defense",
+    "type": "defense",
     "defense": 25,
-    "Price": 40
+    "price": 40,
 }
 
-
-item = [Sword, Armor]
-
-# Is this the same file?
-
-#Changed file
+items = [Sword, Armor]

@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from Characters import Character
 import os
 import random
+import time
+from UI import slow_print  # import from UI
 
 # ------------------- Setup -------------------
 load_dotenv()
