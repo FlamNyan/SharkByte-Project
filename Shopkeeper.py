@@ -1,11 +1,9 @@
-# Shopkeeper.py
-
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 import random
 import time
-from UI import slow_print  # for flavor text
+from UI import slow_print
 
 # ------------------- Setup -------------------
 load_dotenv()
@@ -66,6 +64,7 @@ class Shopkeeper:
 
         # Remember last counter-offer by scraping a number from the text
         import re
+
         numbers = re.findall(r"\d+", text)
         if numbers:
             self.last_counter_offer = int(numbers[-1])
@@ -80,18 +79,21 @@ class Shopkeeper:
     def sell(self, character, time_limit_seconds=60):
         """
         Run one shop visit:
-        - Player picks an item
-        - Negotiation loop with:
-          * max 7 steps (global 'var')
-          * hard time limit (time_limit_seconds)
-        - Returns True if player bought something, False otherwise.
+          - Player picks an item
+          - Negotiation loop with:
+              * max 7 steps (global 'var')
+              * hard time limit (time_limit_seconds)
+          - Returns True if player bought something, False otherwise.
         """
         global var
         var = 0
         self.is_accepted = False
         self.last_counter_offer = None
 
-        slow_print(f'{self.name}: "Welcome, traveler! Take a look at my wares."', delay=0.02)
+        slow_print(
+            f'{self.name}: "Welcome, traveler! Take a look at my wares."',
+            delay=0.02,
+        )
         for i, itm in enumerate(ITEMS, 1):
             slow_print(f"{i}. {itm['name']}", delay=0.01)
 
@@ -102,11 +104,14 @@ class Shopkeeper:
             offer = int(input("How much gold do you offer? \n"))
             print()
         except ValueError:
-            slow_print("You mumble something unintelligible. The merchant just sighs.\n", delay=0.02)
+            slow_print(
+                "You mumble something unintelligible. The merchant just sighs.",
+                delay=0.02,
+            )
             return False
 
         if not (0 <= choice < len(ITEMS)):
-            slow_print("You point at the wall. That is not for sale.\n", delay=0.02)
+            slow_print("You point at the wall. That is not for sale.", delay=0.02)
             return False
 
         selected_item = ITEMS[choice]
@@ -114,18 +119,20 @@ class Shopkeeper:
 
         shop_entry_time = time.perf_counter()
         purchased = False
+        ended_with_custom_line = False  # prevents double closing messages
 
         while not self.is_accepted and var <= 7:
             now = time.perf_counter()
             elapsed = now - shop_entry_time
 
             if elapsed >= time_limit_seconds:
-                # Time out flavor
+                # Time out flavor – this is the ONLY closing line for timeout
                 slow_print(
                     f'\n{self.name}: "If you stare any longer, I\'ll start charging for the view. '
-                    'Come back when you can decide."\n',
+                    'Come back when you can decide."',
                     delay=0.02,
                 )
+                ended_with_custom_line = True
                 break
 
             response_text = self.negotiate(
@@ -140,7 +147,6 @@ class Shopkeeper:
             if self.is_accepted:
                 if character.money >= offer:
                     character.money -= offer
-                    # Assume character has an inventory list attribute
                     if not hasattr(character, "inventory"):
                         character.inventory = []
                     character.inventory.append(selected_item)
@@ -152,31 +158,39 @@ class Shopkeeper:
                     purchased = True
                 else:
                     slow_print(
-                        "You pat your pockets and realize they're lighter than your mouth. No deal. \n",
+                        "You pat your pockets and realize they're lighter than your mouth. No deal.",
                         delay=0.02,
                     )
+                    ended_with_custom_line = True
                 break
 
             # Mood hard cap: var == 7 means 'Refuses to negotiate further'
             if var >= 7:
                 slow_print(
-                    f'{self.name}: "Enough! Haggling with you is costing me coin. Out."\n',
+                    f'{self.name}: "Enough! Haggling with you is costing me coin. Out."',
                     delay=0.02,
                 )
+                ended_with_custom_line = True
                 break
 
             try:
                 offer = int(input("Make a new offer: \n"))
             except ValueError:
                 slow_print(
-                    f'{self.name}: "If you can\'t count your own gold, we\'re done here."\n',
+                    f'{self.name}: "If you can\'t count your own gold, we\'re done here."',
                     delay=0.02,
                 )
+                ended_with_custom_line = True
                 break
 
-        if not purchased and not self.is_accepted and var < 7:
+        # Generic "we're done" line, only if we DIDN'T already show a custom one
+        if (
+            not purchased
+            and not self.is_accepted
+            and not ended_with_custom_line
+        ):
             slow_print(
-                f'{self.name}: "Time is money, friend. Come back when you know what you want."\n',
+                f'{self.name}: "Time is money, friend. Come back when you know what you want."',
                 delay=0.02,
             )
 
@@ -186,14 +200,14 @@ class Shopkeeper:
 # ------------------- Personalities -------------------
 greedy = {
     "name": "Greedy Merchant Joe",
-    "description": "Always trying to get the most money possible.",
+    "description": "Always trying to get the most money possible (within reason). Will gladly accept if you go over his offer.",
     "style": "Arrogant and quick-witted.",
     "catchphrases": ["Nice try, kid.", "You thought you had me, huh?"],
 }
 
 polite = {
     "name": "Town Merchant Brok",
-    "description": "Kind and fair, often lowers prices for travelers.",
+    "description": "Kind and fair, often lowers prices for travelers (within reason). Will attempt to keep things reasonable, but will accept higher prices.",
     "style": "Warm and polite.",
     "catchphrases": [
         "I'm sure we can work something out.",

@@ -1,5 +1,3 @@
-# GameController.py
-
 import os
 import random
 import time
@@ -7,7 +5,7 @@ import time
 from UI import slow_print, slow_input, print_block
 from Characters import Character, enemy_templates
 from Combat import Combat
-from Shopkeeper import Shopkeeper, greedy, polite  # 'items' import removed – not needed
+from Shopkeeper import Shopkeeper, greedy, polite
 
 
 class GameController:
@@ -110,38 +108,18 @@ class GameController:
         slow_print(f'???: "Give them hell, {player_name}!"', delay=d(0.06))
 
         print()
-        input("Press Enter to enter the arena... \n")
+        input("Press Enter to enter the arena... ")
 
         return player_name
 
     # ----------------------------------------------------------------------
-    # SINGLE FIGHT + SHOP
+    # ENEMY CREATION
     # ----------------------------------------------------------------------
-    def run_single_round(self) -> str:
+    def _create_enemy(self) -> Character:
         """
-        Run one full round:
-        - Intro
-        - Create player + enemy
-        - Combat
-        - If enemy dies: increment round counter, visit the shop
-
-        Returns the combat result string:
-            "enemy_dead", "player_dead", or "double_ko".
+        Create a new enemy based on a random template.
+        Later, you can scale this using self.round_counter.
         """
-
-        # --- Intro ---
-        player_name = self.show_intro()
-
-        # --- Player creation (fresh every loop / new run) ---
-        player = Character(
-            name=player_name,
-            health=20,
-            money=0,
-            armor=5,
-            damage=5,
-        )
-
-        # --- Enemy creation ---
         template = random.choice(enemy_templates)
         enemy = Character(
             name=template["name"],
@@ -152,40 +130,26 @@ class GameController:
         )
         enemy.gold_min = template["gold_min"]
         enemy.gold_max = template["gold_max"]
+        # Attach their preferred action so the AI can read it
+        enemy.preferred_action = template.get("preferred_action")
+        return enemy
 
-        # --- Combat ---
-        result = self.combat.run_battle(player, enemy)
-
-        # NOTE:
-        # - On player death / double KO, the flavor text (including crowd noise)
-        #   is handled inside Combat.run_battle().
-        # - We do NOT print the raw result tokens ("player_dead", "double_ko") to the player.
-
-        # --- On victory: increment round, go to shop ---
-        if result == "enemy_dead":
-            self.round_counter += 1
-
-            slow_print(
-                f"\nYou leave the sand with {player.money} gold "
-                f"and {player.vigor} Vigor still burning in your veins.",
-                delay=0.03,
-            )
-
-            # Enter the shop after victory, with a time limit
-            self.run_shop_phase(player)
-
-        return result
-
-        # ----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # SHOP PHASE
     # ----------------------------------------------------------------------
-    def run_shop_phase(self, player):
+    def run_shop_phase(self, player: Character):
         """
-        Runs the shop phase after a victory, with a time limit and
-        limited negotiations. If time runs out or negotiations are exhausted,
-        the shopkeeper kicks the player out with some flavor text.
+        Runs the shop phase after a victory.
+
+        The Shopkeeper handles:
+        - Negotiation
+        - Time limit inside sell()
+        - Being annoyed / kicking you out
+
+        Here we just:
+        - Let the player choose whether to haggle or leave
+        - Then give a single, clean exit line and move on.
         """
-        # Single blank line before the shop flavor
         print()
         slow_print(
             "Between matches, you find your way to a cramped little shop "
@@ -193,31 +157,12 @@ class GameController:
             delay=0.03,
         )
 
-        time_limit_seconds = 30  # or whatever you want
-        shop_entry_time = time.perf_counter()
-        kicked_out = False
-
         while True:
-            now = time.perf_counter()
-            elapsed = now - shop_entry_time
-
-            if elapsed >= time_limit_seconds:
-                # Time's up — quirky "you're wasting my time" dialogue
-                slow_print(
-                    f'\n{self.shopkeeper.name}: "Clock\'s bled dry, friend. '
-                    "Gold\'s not the only thing that runs out around here.\"",
-                    delay=0.03,
-                )
-                kicked_out = True
-                break
-
-            # Offer the player a small menu in the shop
-            slow_print("You are in the shop. What do you do?", delay=0.02)
-            print()
+            slow_print("\nYou are in the shop. What do you do?", delay=0.02)
             slow_print("1. Haggle for an item", delay=0.02)
             slow_print("2. Leave shop", delay=0.02)
             choice = input("> ").strip()
-            print()
+            print()  # blank line after the player's choice
 
             if choice == "2":
                 break
@@ -226,49 +171,17 @@ class GameController:
                 self.shopkeeper.is_accepted = False
                 self.shopkeeper.last_counter_offer = None
 
+                # The shopkeeper handles all flavor + timeouts
                 self.shopkeeper.sell(player)
-
-                # If negotiations exceeded limit inside sell(), quirky "stop wasting time"
-                if not self.shopkeeper.is_accepted:
-                    slow_print(
-                        f'\n{self.shopkeeper.name}: "Fun\'s over. '
-                        'Come back when you know what you want."',
-                        delay=0.03,
-                    )
                 break
 
             slow_print("The shopkeeper stares at you, confused.", delay=0.02)
 
-        if kicked_out:
-            slow_print(
-                "You’re nudged back into the corridor as the door slams behind you.",
-                delay=0.03,
-            )
-
-    # ----------------------------------------------------------------------
-    # DEATH RETRY PROMPT
-    # ----------------------------------------------------------------------
-    def ask_play_again(self) -> bool:
-        """
-        Asks: 'Do you wish to see the story of another criminal?'
-        Returns True if the player wants to restart, False to quit.
-        """
-        while True:
-            slow_print(
-                '???: "Do you wish to see the story of another criminal?" (y/n)',
-                delay=0.03,
-            )
-            choice = input("> ").strip().lower()
-
-            if choice in ("y", "yes"):
-                return True
-            if choice in ("n", "no"):
-                return False
-
-            slow_print(
-                "The voice waits for a clearer answer... (yes or no).",
-                delay=0.02,
-            )
+        # Single, clean exit line for ALL outcomes
+        slow_print(
+            "\nYou step back out of the cramped shop as the arena guards move to escort you.",
+            delay=0.03,
+        )
 
     # ----------------------------------------------------------------------
     # MAIN LOOP
@@ -277,35 +190,64 @@ class GameController:
         """
         Overall game loop.
 
-        - On death (player_dead or double_ko), the whole project loops *only if*
-          the player answers yes to the prompt:
-          'Do you wish to see the story of another criminal?'
-          * Intro is re-run (with fresh debt and fresh character)
-          * is_retry becomes True so future intros are faster
-          * round_counter resets to 0 (fresh run)
-        - On enemy_dead, the player visits the shop, then the demo ends
-          (for now). Later you can expand this to multiple rounds.
+        - One "run" = intro + repeated rounds until death / quit.
+        - Each round:
+            * Announce round number
+            * Spawn random enemy
+            * Fight
+            * On victory: go to shop, then next round
+        - On death:
+            * Combat.run_battle prints death + crowd text
+              and asks if you want another criminal.
+            * If Combat.run_battle returns "quit", we stop everything here.
         """
-        while True:
-            # Each run is a fresh attempt; reset round counter
+        while True:  # Outer loop: full runs
             self.round_counter = 0
 
-            result = self.run_single_round()
+            # --- New Run: Intro + Player creation ---
+            player_name = self.show_intro()
+            player = Character(
+                name=player_name,
+                health=20,
+                money=0,
+                armor=5,
+                damage=5,
+            )
 
-            if result in ("player_dead", "double_ko"):
-                wants_again = self.ask_play_again()
-                if wants_again:
-                    self.is_retry = True
-                    slow_print("\nThe arena resets around you...", delay=0.02)
-                    # Loop back for a totally fresh run (new intro, new debt, new character)
+            # --- Inner loop: Rounds within this run ---
+            while True:
+                current_round = self.round_counter + 1
+                slow_print(f"\n[ROUND: {current_round} BEGINS!]", delay=0.03)
+
+                enemy = self._create_enemy()
+                result = self.combat.run_battle(player, enemy)
+
+                if result == "enemy_dead":
+                    # Completed a round
+                    self.round_counter += 1
+
+                    slow_print(
+                        f"\nYou leave the sand with {player.money} gold "
+                        f"and {player.vigor} Vigor still burning in your veins.",
+                        delay=0.03,
+                    )
+
+                    # Shop between rounds
+                    self.run_shop_phase(player)
+                    # Loop continues to next round with the same player
                     continue
-                else:
-                    slow_print("\nThe tale ends here.", delay=0.03)
-                    break
 
-            # Victory (enemy_dead) currently ends the run after the shop.
-            slow_print("\nEnd of demo. Thanks for playing!", delay=0.03)
-            break
+                # Explicit quit from Combat
+                if result == "quit":
+                    slow_print("\nYour story ends here.", delay=0.03)
+                    return
+
+                # Player died (or double KO), but chose to see another criminal.
+                # Mark this as a retry so intro text is faster next time.
+                self.is_retry = True
+                slow_print("\nThe arena resets around you...", delay=0.02)
+                # Break inner loop to restart from intro with a new character
+                break
 
 
 # ----------------------------------------------------------------------

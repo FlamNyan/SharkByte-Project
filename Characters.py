@@ -5,9 +5,11 @@ class Character:
         self.money = money
         self.armor = armor
         self.damage = damage
+        # Simple inventory list for items bought in the shop
         self.inventory = []
         # Vigor resource used by combat (starts at 0)
         self.vigor = 0
+
 
 enemy_templates = [
     {
@@ -17,6 +19,8 @@ enemy_templates = [
         "damage": 4,
         "gold_min": 10,
         "gold_max": 20,
+        # Nimble and tricksy – likes feints
+        "preferred_action": "feint",
     },
     {
         "name": "Skeleton Knight",
@@ -25,6 +29,8 @@ enemy_templates = [
         "damage": 5,
         "gold_min": 15,
         "gold_max": 30,
+        # Heavily armored – likes to block and punish
+        "preferred_action": "block",
     },
     {
         "name": "Bandit Raider",
@@ -33,5 +39,7 @@ enemy_templates = [
         "damage": 6,
         "gold_min": 20,
         "gold_max": 40,
+        # Aggressive brawler – likes to attack
+        "preferred_action": "attack",
     },
 ]

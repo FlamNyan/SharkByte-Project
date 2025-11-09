@@ -353,7 +353,7 @@ class Combat:
         armor_loss = prev_armor - p.armor
         hp_loss = prev_health - p.health
 
-        # New: handle no-armor / armor-break text correctly
+        # Handle no-armor / armor-break text correctly
         if prev_armor <= 0:
             messages.append(
                 f"The blow crashes straight into {p.name}'s body. (-{hp_loss} HP)"
@@ -395,7 +395,7 @@ class Combat:
         armor_loss = prev_armor - e.armor
         hp_loss = prev_health - e.health
 
-        # New: handle no-armor / armor-break text correctly
+        # Handle no-armor / armor-break text correctly
         if prev_armor <= 0:
             messages.append(
                 f"With no armor left, {e.name} takes the feint full on. (-{hp_loss} HP)"
@@ -570,22 +570,47 @@ class Combat:
 
     def _get_enemy_action(self, enemy):
         """
-        Simple enemy AI:
-        - If it has 2+ Vigor, it has a chance to use Heavy Attack or Fortify.
-        - Otherwise, picks between Attack / Block / Feint.
-        """
-        if enemy.vigor >= 2:
-            # Weighted choice: heavy 40%, fortify 30%, feint 30%
-            roll = random.random()
-            if roll < 0.4:
-                enemy.vigor = max(0, enemy.vigor - 2)
-                return "heavy_attack"
-            if roll < 0.7:
-                enemy.vigor = max(0, enemy.vigor - 2)
-                return "fortify"
-            return "feint"
+        Simple enemy AI with per-enemy preferences.
 
-        return random.choice(["attack", "block", "feint"])
+        Each enemy may have `enemy.preferred_action` set to "attack", "block",
+        or "feint". That action is more likely, but everything stays random.
+        """
+        preferred = getattr(enemy, "preferred_action", None)
+
+        # Base weights for normal actions
+        if preferred == "attack":
+            base_weights = {"attack": 0.5, "block": 0.25, "feint": 0.25}
+        elif preferred == "block":
+            base_weights = {"attack": 0.25, "block": 0.5, "feint": 0.25}
+        elif preferred == "feint":
+            base_weights = {"attack": 0.25, "block": 0.25, "feint": 0.5}
+        else:
+            base_weights = {"attack": 1 / 3, "block": 1 / 3, "feint": 1 / 3}
+
+        # If it has 2+ Vigor, it can use specials. Preference nudges those too.
+        if enemy.vigor >= 2:
+            if preferred == "attack":
+                choices = ["heavy_attack", "fortify", "feint"]
+                probs = [0.5, 0.25, 0.25]
+            elif preferred == "block":
+                choices = ["fortify", "heavy_attack", "feint"]
+                probs = [0.5, 0.25, 0.25]
+            elif preferred == "feint":
+                choices = ["feint", "heavy_attack", "fortify"]
+                probs = [0.5, 0.25, 0.25]
+            else:
+                choices = ["heavy_attack", "fortify", "feint"]
+                probs = [0.4, 0.3, 0.3]
+
+            action = random.choices(choices, weights=probs, k=1)[0]
+            if action in ("heavy_attack", "fortify"):
+                enemy.vigor = max(0, enemy.vigor - 2)
+            return action
+
+        # Not enough Vigor: choose a basic action according to base_weights
+        actions = list(base_weights.keys())
+        weights = list(base_weights.values())
+        return random.choices(actions, weights=weights, k=1)[0]
 
     # ------------------------
     # MAIN BATTLE LOOP
@@ -659,6 +684,10 @@ class Combat:
                 "The crowd erupts, delighted by the double fall—blood is blood, and they got their share.",
                 delay=0.03,
             )
+            print()
+            answer = input('???: "Do you wish to see the story of another criminal?" (y/n) ').strip().lower()
+            if answer in ("n", "no", "q", "quit", "exit"):
+                return "quit"
             return "double_ko"
 
         if player.health <= 0:
@@ -667,6 +696,10 @@ class Combat:
                 "The stands shake with joy as coins and curses rain down in your honorless name.",
                 delay=0.03,
             )
+            print()
+            answer = input('???: "Do you wish to see the story of another criminal?" (y/n) ').strip().lower()
+            if answer in ("n", "no", "q", "quit", "exit"):
+                return "quit"
             return "player_dead"
 
         slow_print(f"The {enemy.name} falls. You stand victorious.", delay=0.03)
