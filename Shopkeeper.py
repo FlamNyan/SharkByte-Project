@@ -1,18 +1,19 @@
+# Shopkeeper.py
 
-from google import genai
 import google.generativeai as genai
 from dotenv import load_dotenv
-from Characters import Character
 import os
 import random
 import time
-from UI import slow_print  # import from UI
+from UI import slow_print  # for flavor text
 
 # ------------------- Setup -------------------
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
+# global negotiation counter
 var = 0
+
 
 # ------------------- Shopkeeper Class -------------------
 class Shopkeeper:
@@ -23,22 +24,21 @@ class Shopkeeper:
         self.last_counter_offer = None
 
     def negotiate(self, item_name, price, offer, prevoffer):
+        """
+        One negotiation step with the LLM.
+        Uses global var as a rough 'patience / mood' counter.
+        """
         global var
         var += 1
         catch = random.choice(self.personality["catchphrases"])
 
-        mood = "Default personality"
-
         if var <= 2:
             mood = "Default personality"
-
         elif var <= 4:
             mood = "Slightly annoyed"
-        
         elif var <= 6:
             mood = "Very annoyed"
-
-        elif var == 7:
+        else:
             mood = "Refuses to negotiate further"
 
         prompt = f"""
@@ -53,92 +53,154 @@ class Shopkeeper:
         Respond in character and negotiate naturally.
         Be polite or aggressive depending on your personality.
         Also consider the player's previous offer {prevoffer}. If it's 0 disregard it.
-        Your {mood} should influence your responses and negotiation preferences.
+        Your mood ("{mood}") should influence your responses and negotiation preferences.
+
         End your message by stating your new price or if you accept the deal.
-        If the offer is acceptable, clearly say the words "accept" or "deal" to make sure you wanna sell it, Otherwise do not say them.
+        If the offer is acceptable, clearly say the words "accept" or "deal"
+        if you want to sell it. Otherwise do NOT say those words.
         """
 
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
-        prevoffer = offer
         text = response.text.strip()
+
+        # Remember last counter-offer by scraping a number from the text
         import re
-        numbers = re.findall(r'\d+', text)
+        numbers = re.findall(r"\d+", text)
         if numbers:
             self.last_counter_offer = int(numbers[-1])
 
         # Detect acceptance
-        if "accept" in text.lower() or "deal" in text.lower():
+        lowered = text.lower()
+        if "accept" in lowered or "deal" in lowered:
             self.is_accepted = True
 
         return text
 
-    def sell(self, character):
+    def sell(self, character, time_limit_seconds=30):
+        """
+        Run one shop visit:
+        - Player picks an item
+        - Negotiation loop with:
+          * max 7 steps (global 'var')
+          * hard time limit (time_limit_seconds)
+        - Returns True if player bought something, False otherwise.
+        """
         global var
         var = 0
-        self.last_offer = None
-        print(f"{self.name}: Welcome, traveler! Take a look at my wares:")
-        for i, itm in enumerate(items, 1):
-            print(f"{i}. {itm['name']}")
+        self.is_accepted = False
+        self.last_counter_offer = None
+
+        slow_print(f'{self.name}: "Welcome, traveler! Take a look at my wares."', delay=0.02)
+        for i, itm in enumerate(ITEMS, 1):
+            slow_print(f"{i}. {itm['name']}", delay=0.01)
 
         try:
             choice = int(input("Enter the number of the item you want to buy: ")) - 1
             offer = int(input("How much gold do you offer? "))
         except ValueError:
-            print("Invalid input.")
-            return
+            slow_print("You mumble something unintelligible. The merchant just sighs.", delay=0.02)
+            return False
 
-        if not (0 <= choice < len(items)):
-            print("Invalid choice.")
-            return
+        if not (0 <= choice < len(ITEMS)):
+            slow_print("You point at the wall. That is not for sale.", delay=0.02)
+            return False
 
-        selected_item = items[choice]
+        selected_item = ITEMS[choice]
         prevoffer = 0
+
+        shop_entry_time = time.perf_counter()
+        purchased = False
+
         while not self.is_accepted and var <= 7:
-            response_text = self.negotiate(selected_item['name'], selected_item['Price'], offer, prevoffer)
-            print(f"{self.name}: {response_text}")
+            now = time.perf_counter()
+            elapsed = now - shop_entry_time
+
+            if elapsed >= time_limit_seconds:
+                # Time out flavor
+                slow_print(
+                    f'\n{self.name}: "If you stare any longer, I\'ll start charging for the view. '
+                    'Come back when you can decide."',
+                    delay=0.02,
+                )
+                break
+
+            response_text = self.negotiate(
+                selected_item["name"],
+                selected_item["Price"],
+                offer,
+                prevoffer,
+            )
+            prevoffer = offer
+            slow_print(f"{self.name}: {response_text}", delay=0.01)
 
             if self.is_accepted:
                 if character.money >= offer:
                     character.money -= offer
+                    # Assume character has an inventory list attribute
+                    if not hasattr(character, "inventory"):
+                        character.inventory = []
                     character.inventory.append(selected_item)
-                    print(f"You bought {selected_item['name']} for {offer} gold. Remaining gold: {character.money}")
+                    slow_print(
+                        f"You bought {selected_item['name']} for {offer} gold. "
+                        f"Remaining gold: {character.money}",
+                        delay=0.02,
+                    )
+                    purchased = True
                 else:
-                    print("You don't have enough gold!")
+                    slow_print(
+                        "You pat your pockets and realize they're lighter than your mouth. No deal.",
+                        delay=0.02,
+                    )
                 break
-            else:
-                try:
-                    offer = int(input("Make a new offer: "))
-                except ValueError:
-                    print("Invalid number, ending negotiation.")
-                    break
+
+            # Mood hard cap: var == 7 means 'Refuses to negotiate further'
+            if var >= 7:
+                slow_print(
+                    f'{self.name}: "Enough! Haggling with you is costing me coin. Out."',
+                    delay=0.02,
+                )
+                break
+
+            try:
+                offer = int(input("Make a new offer: "))
+            except ValueError:
+                slow_print(
+                    f'{self.name}: "If you can\'t count your own gold, we\'re done here."',
+                    delay=0.02,
+                )
+                break
+
+        if not purchased and not self.is_accepted and var < 7:
+            slow_print(
+                f'{self.name}: "Time is money, friend. Come back when you know what you want."',
+                delay=0.02,
+            )
+
+        return purchased
+
 
 # ------------------- Personalities -------------------
 greedy = {
     "name": "Greedy Merchant Joe",
     "description": "Always trying to get the most money possible.",
     "style": "Arrogant and quick-witted.",
-    "catchphrases": ["Nice try, kid.", "You thought you had me, huh?"]
+    "catchphrases": ["Nice try, kid.", "You thought you had me, huh?"],
 }
 
 polite = {
     "name": "Town Merchant Brok",
     "description": "Kind and fair, often lowers prices for travelers.",
     "style": "Warm and polite.",
-    "catchphrases": ["I'm sure we can work something out.", "Good luck on your adventure!"]
+    "catchphrases": [
+        "I'm sure we can work something out.",
+        "Good luck on your adventure!",
+    ],
 }
 
+PERSONALITIES = [greedy, polite]
+
 # ------------------- Items -------------------
-Sword = {"name": "Sword", "Type": "weapon", "Damage": 5, "Price": 10}
-Armor = {"name": "Armor", "Type": "defense", "Defense": 25, "Price": 40}
-items = [Sword, Armor]
-
-# ------------------- Main -------------------
-def main():
-    print("Welcome to the Shopkeeper Demo!")
-    hero = Character("Hero", 100, 50, 10, 50)
-    clerk = Shopkeeper("Brok", polite)
-    clerk.sell(hero)
-
-if __name__ == "__main__":
-    main()
+SWORD = {"name": "Sword", "Type": "weapon", "Damage": 5, "Price": 10}
+ARMOR = {"name": "Armor", "Type": "defense", "Defense": 25, "Price": 40}
+ITEMS = [SWORD, ARMOR]

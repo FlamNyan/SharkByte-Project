@@ -1,3 +1,5 @@
+# Combat.py
+
 import time
 import random
 from UI import slow_print
@@ -20,47 +22,19 @@ class Combat:
         else:
             character.health -= dmg
 
-    def totalDamage(self, item, Character):
-
-        weapon = None
-
-        for item in Character.inventory:
-            if item.get("Type") == "weapon":
-                weapon = item
-                break
-        
-        if weapon:
-            total_damage = getattr(Character, "damage", 0) + weapon.get("Damage", 0)
-        else:
-            total_damage = getattr(Character, "damage", 0)
-
-        return total_damage
-        
-    
-
-          
-    
-    def TurnAction(self, playerAction, enemyAction, playerHealth, enemyHealth, enemyItem, playerItem, player, enemy):
-
-        """
-        playerAction, enemyAction: 'a' = attack, 'b' = block
-        player, enemy: objects with .health attribute
-        playerItem, enemyItem: item dictionaries (weapons)
-        """
-
-        playerDamage = self.totalDamage(playerItem, player)
-        enemyDamage = self.totalDamage(enemyItem, enemy) if enemyItem else 10
     def apply_hp_damage(self, character, dmg):
         if dmg <= 0:
             return
         character.health -= dmg
 
     def _describe_vigor_gain(self, a, b):
-        """Helper to describe vigor gains for two combatants."""
-        return [
-            f"{a.name} steels their resolve. (+1 Vigor)",
-            f"{b.name} looks more focused. (+1 Vigor)",
-        ]
+        """
+        Helper to describe vigor gains for two combatants.
+
+        Simplified to a single line so it doesn't feel like
+        the same flavor text is repeated twice every time.
+        """
+        return [f"Both {a.name} and {b.name} steel themselves. (+1 Vigor each)"]
 
     # ------------------------------------------------------------------
     # MATCHUP HELPERS
@@ -333,9 +307,7 @@ class Combat:
         if p_heavy:
             crit_mult *= 2  # Heavy makes crit even worse
         crit = base_p_dmg * crit_mult
-        messages.append(
-            f"{e.name} tries something clever, but {p.name} reads it perfectly!"
-        )
+        messages.append(f"{e.name} tries something clever, but {p.name} reads it perfectly!")
         self.apply_hp_damage(e, crit)
         messages.append(f"Critical hit! {e.name} takes {crit} HP damage.")
         return messages
@@ -364,31 +336,85 @@ class Combat:
     def _block_vs_feint(self, p, e, base_e_dmg, p_fortify):
         messages = []
         armor_hit = max(1, base_e_dmg)
+
         if p_fortify:
             messages.append(
                 f"{p.name} turtles up, and {e.name}'s feint crashes harmlessly off a fortified guard!"
             )
             messages.append(f"{p.name}'s armor takes no damage. (0 Armor lost)")
-        else:
+            return messages
+
+        messages.append(f"{p.name} turtles up, but {e.name}'s feint slips past the guard!")
+
+        prev_armor = p.armor
+        prev_health = p.health
+        self.apply_armor_damage(p, armor_hit)
+
+        armor_loss = prev_armor - p.armor
+        hp_loss = prev_health - p.health
+
+        # New: handle no-armor / armor-break text correctly
+        if prev_armor <= 0:
             messages.append(
-                f"{p.name} turtles up, but {e.name}'s feint slips past the guard!"
+                f"The blow crashes straight into {p.name}'s body. (-{hp_loss} HP)"
             )
-            self.apply_armor_damage(p, armor_hit)
-            messages.append(f"{p.name}'s armor takes the full force. (-{armor_hit} Armor)")
+        elif p.armor > 0:
+            messages.append(
+                f"{p.name}'s armor takes the full force. (-{armor_loss} Armor)"
+            )
+        else:
+            if hp_loss > 0:
+                messages.append(
+                    f"{p.name}'s armor shatters, and the impact bruises flesh beneath. "
+                    f"(-{armor_loss} Armor, -{hp_loss} HP)"
+                )
+            else:
+                messages.append(
+                    f"{p.name}'s armor shatters under the trickery. (-{armor_loss} Armor)"
+                )
+
         return messages
 
     def _feint_vs_block(self, p, e, base_p_dmg, e_fortify):
         messages = []
         armor_hit = max(1, base_p_dmg)
+
         if e_fortify:
             messages.append(
                 f"{e.name} braces behind a fortified shield, shrugging off {p.name}'s trick."
             )
             messages.append(f"{e.name}'s armor takes no damage. (0 Armor lost)")
+            return messages
+
+        messages.append(f"{e.name} braces, but {p.name}'s feint punishes its guard!")
+
+        prev_armor = e.armor
+        prev_health = e.health
+        self.apply_armor_damage(e, armor_hit)
+
+        armor_loss = prev_armor - e.armor
+        hp_loss = prev_health - e.health
+
+        # New: handle no-armor / armor-break text correctly
+        if prev_armor <= 0:
+            messages.append(
+                f"With no armor left, {e.name} takes the feint full on. (-{hp_loss} HP)"
+            )
+        elif e.armor > 0:
+            messages.append(
+                f"{e.name}'s armor buckles under the trick. (-{armor_loss} Armor)"
+            )
         else:
-            messages.append(f"{e.name} braces, but {p.name}'s feint punishes its guard!")
-            self.apply_armor_damage(e, armor_hit)
-            messages.append(f"{e.name}'s armor buckles under the trick. (-{armor_hit} Armor)")
+            if hp_loss > 0:
+                messages.append(
+                    f"{e.name}'s armor shatters and the feint leaves a real wound. "
+                    f"(-{armor_loss} Armor, -{hp_loss} HP)"
+                )
+            else:
+                messages.append(
+                    f"{e.name}'s armor shatters under the sudden angle. (-{armor_loss} Armor)"
+                )
+
         return messages
 
     # --- Feint vs Feint ---
@@ -479,20 +505,19 @@ class Combat:
     def _get_player_action_with_vigor(self, player):
         """Menu when the player has enough Vigor for specials."""
         slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.02)
-        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.02)
         slow_print(
             "1. Heavy Attack (Uses 2 Vigor) – A crushing blow that "
             "deals greatly increased damage if it connects.",
-            delay=0.01,
+            delay=0.02,
         )
         slow_print(
             "2. Fortify Guard (Uses 2 Vigor) – Supercharged defense: "
             "your guard this turn doesn’t lose armor.",
-            delay=0.01,
+            delay=0.02,
         )
         slow_print(
             "3. Feint – A risky fake-out. Punishes Blocks, but loses badly to direct Attacks.",
-            delay=0.01,
+            delay=0.02,
         )
 
         choice = input("> ").strip().lower()
@@ -512,15 +537,15 @@ class Combat:
         """Menu when the player does not have enough Vigor for specials."""
         slow_print(
             "1. Attack – A standard strike. Strong against Feints, weak into solid Blocks.",
-            delay=0.01,
+            delay=0.02,
         )
         slow_print(
             "2. Block – Raise your guard. Mitigates damage and can build Vigor.",
-            delay=0.01,
+            delay=0.02,
         )
         slow_print(
             "3. Feint – A risky fake-out. Punishes Blocks, but loses badly to Attacks.",
-            delay=0.01,
+            delay=0.02,
         )
 
         choice = input("> ").strip().lower()
@@ -569,8 +594,8 @@ class Combat:
         """Main battle loop: handles turns until either side drops to 0 HP."""
         slow_print("\nYou step into the corridor...", delay=0.03)
         time.sleep(0.5)
-        slow_print(f"You encountered a {enemy.name}!", delay=0.02)
-        slow_print(f"{enemy.name} — HP: {enemy.health} | Armor: {enemy.armor}", delay=0.02)
+        slow_print(f"You encountered a {enemy.name}!", delay=0.03)
+        slow_print(f"{enemy.name} — HP: {enemy.health} | Armor: {enemy.armor}", delay=0.03)
 
         while player.health > 0 and enemy.health > 0:
             # Turn status
@@ -631,11 +656,7 @@ class Combat:
         if player.health <= 0 and enemy.health <= 0:
             slow_print("Both you and your foe collapse to the ground...", delay=0.03)
             slow_print(
-                "The crowd roars in disbelief, hungry for blood and eager for the next execution.",
-                delay=0.03,
-            )
-            slow_print(
-                '???: "Do you wish to see the story of another criminal?"',
+                "The crowd erupts, delighted by the double fall—blood is blood, and they got their share.",
                 delay=0.03,
             )
             return "double_ko"
@@ -643,11 +664,7 @@ class Combat:
         if player.health <= 0:
             slow_print("Your vision fades. The dungeon claims another soul.", delay=0.03)
             slow_print(
-                "The crowd erupts in wild delight, chanting for the next poor soul to enter the sand.",
-                delay=0.03,
-            )
-            slow_print(
-                '???: "Do you wish to see the story of another criminal?"',
+                "The stands shake with joy as coins and curses rain down in your honorless name.",
                 delay=0.03,
             )
             return "player_dead"
