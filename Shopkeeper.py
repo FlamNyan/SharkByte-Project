@@ -84,20 +84,26 @@ class Shopkeeper:
 
         return text
 
-    def sell(self, character, time_limit_seconds=60):
+    def sell(self, character, round_number, time_limit_seconds=60):
         """
         Run one shop visit:
           - Player picks an item
           - Negotiation loop with:
               * max 7 steps (global 'var')
               * hard time limit (time_limit_seconds)
-          - Item has a randomized hidden "base price" for this visit
+          - Item has a randomized hidden "base price" for this visit,
+            which scales with the current round_number.
+          - On purchase, the item grants a stat buff that ALSO scales
+            with round_number, and prints a clear "+X" message.
           - Returns True if player bought something, False otherwise.
         """
         global var
         var = 0
         self.is_accepted = False
         self.last_counter_offer = None
+
+        # Make sure round_number is at least 1
+        tier = max(1, int(round_number))
 
         slow_print(
             f'{self.name}: "Welcome, traveler! Take a look at my wares."',
@@ -126,11 +132,14 @@ class Shopkeeper:
         selected_item = ITEMS[choice]
         prevoffer = 0
 
-        # --- Hidden, randomized base price for this visit ---
-        base_price = selected_item["Price"]
-        # Random range: 80% - 140% of the base item price, at least 1 gold
+        # --- Scaled base price for this visit (per round) ---
+        base_price = selected_item["base_price"] + (tier - 1) * selected_item["price_per_round"]
+        if base_price < 1:
+            base_price = 1
+
+        # Random range: 80% - 140% of the scaled base price, at least 1–2 gold wide
         min_hidden = max(1, int(base_price * 0.8))
-        max_hidden = int(base_price * 1.4)
+        max_hidden = max(min_hidden + 1, int(base_price * 1.4))
         hidden_price = random.randint(min_hidden, max_hidden)
 
         shop_entry_time = time.perf_counter()
@@ -153,7 +162,7 @@ class Shopkeeper:
 
             response_text = self.negotiate(
                 selected_item["name"],
-                hidden_price,  # randomized hidden base price for the LLM
+                hidden_price,  # scaled, randomized hidden base price for the LLM
                 offer,
                 prevoffer,
             )
@@ -174,6 +183,29 @@ class Shopkeeper:
                     if not hasattr(character, "inventory"):
                         character.inventory = []
                     character.inventory.append(selected_item)
+
+                    # --- Apply stat buffs based on item type & round tier ---
+                    if selected_item["type"] == "weapon":
+                        base_dmg = selected_item["base_damage"]
+                        growth = selected_item["damage_per_round"]
+                        dmg_bonus = base_dmg + (tier - 1) * growth
+                        character.damage += dmg_bonus
+                        slow_print(
+                            f"You feel the weight of the {selected_item['name']} settle into your hand. "
+                            f"(+{dmg_bonus} Damage)",
+                            delay=0.02,
+                        )
+                    elif selected_item["type"] == "defense":
+                        base_def = selected_item["base_defense"]
+                        growth = selected_item["defense_per_round"]
+                        def_bonus = base_def + (tier - 1) * growth
+                        character.armor += def_bonus
+                        slow_print(
+                            f"The {selected_item['name']} wraps around you like a second skin. "
+                            f"(+{def_bonus} Armor)",
+                            delay=0.02,
+                        )
+
                     slow_print(
                         f"You bought {selected_item['name']} for {offer} gold. "
                         f"Remaining gold: {character.money}",
@@ -241,7 +273,28 @@ polite = {
 
 PERSONALITIES = [greedy, polite]
 
-# ------------------- Items -------------------
-SWORD = {"name": "Sword", "Type": "weapon", "Damage": 5, "Price": 15}
-ARMOR = {"name": "Armor", "Type": "defense", "Defense": 10, "Price": 18}
+# ------------------- Items (SCALING PER ROUND) -------------------
+# These are base values; scaling happens in sell() using round_number.
+SWORD = {
+    "name": "Sword",
+    "type": "weapon",
+    # Base buff and how much extra per round
+    "base_damage": 5,
+    "damage_per_round": 2,
+    # Economy: base price and price gain per round
+    "base_price": 15,
+    "price_per_round": 5,
+}
+
+ARMOR = {
+    "name": "Armor",
+    "type": "defense",
+    # Base buff and how much extra per round
+    "base_defense": 5,
+    "defense_per_round": 3,
+    # Economy: base price and price gain per round
+    "base_price": 18,
+    "price_per_round": 4,
+}
+
 ITEMS = [SWORD, ARMOR]

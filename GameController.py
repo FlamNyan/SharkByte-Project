@@ -115,23 +115,45 @@ class GameController:
         return player_name
 
     # ----------------------------------------------------------------------
-    # ENEMY CREATION
+    # ENEMY CREATION (WITH ROUND SCALING)
     # ----------------------------------------------------------------------
     def _create_enemy(self) -> Character:
         """
-        Create a new enemy based on a random template.
-        Later, you can scale this using self.round_counter.
+        Create a new enemy based on a random template, scaled by round.
+
+        Enemies scale up *aggressively* with each round:
+        - More HP
+        - More Armor
+        - More Damage
+        - More gold carried
         """
         template = random.choice(enemy_templates)
+
+        # Upcoming round number is 1-based (first fight = round 1)
+        round_number = max(1, self.round_counter + 1)
+
+        # Stronger scaling per round
+        scaled_health = template["health"] + round_number * 3
+        scaled_armor = template["armor"] + round_number * 1
+        scaled_damage = template["damage"] + (round_number // 2) + 1
+
         enemy = Character(
             name=template["name"],
-            health=template["health"],
+            health=scaled_health,
             money=0,
-            armor=template["armor"],
-            damage=template["damage"],
+            armor=scaled_armor,
+            damage=scaled_damage,
         )
-        enemy.gold_min = template["gold_min"]
-        enemy.gold_max = template["gold_max"]
+
+        # Gold carried also scales up with rounds
+        base_min = template["gold_min"]
+        base_max = template["gold_max"]
+        bonus_min = round_number * 4
+        bonus_max = round_number * 6
+
+        enemy.gold_min = base_min + bonus_min
+        enemy.gold_max = base_max + bonus_max
+
         # Attach their preferred action so the AI can read it
         enemy.preferred_action = template.get("preferred_action")
         return enemy
@@ -302,8 +324,9 @@ class GameController:
                 self.shopkeeper.is_accepted = False
                 self.shopkeeper.last_counter_offer = None
 
-                # The shopkeeper handles all flavor + timeouts
-                self.shopkeeper.sell(player)
+                # The shopkeeper handles all flavor + timeouts.
+                # Pass the current round so items scale with progression.
+                self.shopkeeper.sell(player, self.round_counter)
                 break
 
             slow_print("The shopkeeper stares at you, confused.", delay=0.02)
