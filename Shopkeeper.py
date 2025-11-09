@@ -53,9 +53,13 @@ class Shopkeeper:
         Also consider the player's previous offer {prevoffer}. If it's 0 disregard it.
         Your mood ("{mood}") should influence your responses and negotiation preferences.
 
-        End your message by stating your new price or if you accept the deal.
-        If the offer is acceptable, clearly say the words "accept" or "deal"
-        if you want to sell it. Otherwise do NOT say those words.
+        IMPORTANT:
+        - Do NOT use the words "accept" or "deal" anywhere in your message EXCEPT on the final line.
+        - At the VERY END of your reply, add ONE extra line in ALL CAPS with NO extra words:
+            DECISION: ACCEPT
+          or
+            DECISION: REJECT
+        The entire decision must be on that single line.
         """
 
         model = genai.GenerativeModel("gemini-2.5-flash")
@@ -69,10 +73,14 @@ class Shopkeeper:
         if numbers:
             self.last_counter_offer = int(numbers[-1])
 
-        # Detect acceptance
-        lowered = text.lower()
-        if "accept" in lowered or "deal" in lowered:
+        # Detect acceptance ONLY from the final decision line
+        lines = text.splitlines()
+        decision_line = lines[-1].strip().lower() if lines else ""
+
+        if "decision: accept" in decision_line:
             self.is_accepted = True
+        else:
+            self.is_accepted = False
 
         return text
 
@@ -83,6 +91,7 @@ class Shopkeeper:
           - Negotiation loop with:
               * max 7 steps (global 'var')
               * hard time limit (time_limit_seconds)
+          - Item has a randomized hidden "base price" for this visit
           - Returns True if player bought something, False otherwise.
         """
         global var
@@ -117,6 +126,13 @@ class Shopkeeper:
         selected_item = ITEMS[choice]
         prevoffer = 0
 
+        # --- Hidden, randomized base price for this visit ---
+        base_price = selected_item["Price"]
+        # Random range: 80% - 140% of the base item price, at least 1 gold
+        min_hidden = max(1, int(base_price * 0.8))
+        max_hidden = int(base_price * 1.4)
+        hidden_price = random.randint(min_hidden, max_hidden)
+
         shop_entry_time = time.perf_counter()
         purchased = False
         ended_with_custom_line = False  # prevents double closing messages
@@ -137,12 +153,20 @@ class Shopkeeper:
 
             response_text = self.negotiate(
                 selected_item["name"],
-                selected_item["Price"],
+                hidden_price,  # randomized hidden base price for the LLM
                 offer,
                 prevoffer,
             )
             prevoffer = offer
-            slow_print(f"{self.name}: {response_text}", delay=0.01)
+
+            # Strip off the DECISION line before showing text to the player
+            lines = response_text.splitlines()
+            if lines and lines[-1].strip().upper().startswith("DECISION:"):
+                display_text = "\n".join(lines[:-1]).strip()
+            else:
+                display_text = response_text
+
+            slow_print(f"{self.name}: {display_text}", delay=0.01)
 
             if self.is_accepted:
                 if character.money >= offer:
@@ -218,6 +242,6 @@ polite = {
 PERSONALITIES = [greedy, polite]
 
 # ------------------- Items -------------------
-SWORD = {"name": "Sword", "Type": "weapon", "Damage": 5, "Price": 10}
-ARMOR = {"name": "Armor", "Type": "defense", "Defense": 25, "Price": 40}
+SWORD = {"name": "Sword", "Type": "weapon", "Damage": 5, "Price": 15}
+ARMOR = {"name": "Armor", "Type": "defense", "Defense": 10, "Price": 18}
 ITEMS = [SWORD, ARMOR]

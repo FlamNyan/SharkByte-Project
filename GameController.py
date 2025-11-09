@@ -14,6 +14,8 @@ class GameController:
         self.round_counter = 0
         # After your first death, intros run in "fast" mode
         self.is_retry = False
+        # Debt for the current run (set in show_intro)
+        self.debt = 0
 
         # Core systems
         self.combat = Combat()
@@ -39,8 +41,8 @@ class GameController:
         def d(original_delay: float) -> float:
             return 0.01 if self.is_retry else original_delay
 
-        # New debt each time the intro runs
-        debt = random.randint(250, 350)  # Debt is a random number from 250 to 350
+        # New debt each time the intro runs and store it on the controller
+        self.debt = random.randint(250, 350)  # Debt is a random number from 250 to 350
 
         # Clear screen (works on Windows, Mac, Linux)
         os.system("cls" if os.name == "nt" else "clear")
@@ -55,7 +57,7 @@ class GameController:
         print()
         print_block(
             '???: "You remember why you’re here, right? '
-            f'Not for glory. Not for honor. For debt. {debt} gold, to be exact..."',
+            f'Not for glory. Not for honor. For debt. {self.debt} gold, to be exact..."',
             delay=d(0.04),
         )
         time.sleep(0.7)
@@ -133,6 +135,135 @@ class GameController:
         # Attach their preferred action so the AI can read it
         enemy.preferred_action = template.get("preferred_action")
         return enemy
+
+    # ----------------------------------------------------------------------
+    # DEBT-CLEARED ENDING
+    # ----------------------------------------------------------------------
+    def _run_debt_cleared_ending(self, player: Character):
+        """
+        Narrative + ending when the player has enough gold to pay their debt.
+        Consumes the debt in gold, plays a cinematic text sequence,
+        and then returns to let the caller end the run.
+        """
+        # Capture pre-payment gold for flavor
+        total_gold = player.money
+        debt = self.debt
+        leftover = max(0, total_gold - debt)
+
+        slow_print(
+            "\nAs you step from the sand, the roar of the crowd dims, "
+            "smothered by the stone of the tunnel.",
+            delay=0.03,
+        )
+        time.sleep(0.5)
+
+        slow_print(
+            "For the first time, the noise behind you isn’t what you’re listening to.",
+            delay=0.03,
+        )
+        slow_print(
+            "It’s the sound in front of you — the dry scrape of a ledger being opened.",
+            delay=0.03,
+        )
+        time.sleep(0.6)
+
+        slow_print(
+            "A clerk in ink-stained robes waits at a small iron table, "
+            "flanked by two bored-looking guards.",
+            delay=0.03,
+        )
+        slow_print(
+            f"Your purse is heavy. {total_gold} gold pieces. Enough to smother "
+            f"the {debt} you owe.",
+            delay=0.03,
+        )
+        time.sleep(0.6)
+
+        slow_print(
+            '"By the terms of your sentence," the clerk drones, '
+            '"payment in full remits service to the arena."',
+            delay=0.03,
+        )
+        slow_print(
+            "The words hang in the air like a blade about to fall.",
+            delay=0.03,
+        )
+        time.sleep(0.7)
+
+        slow_print(
+            "The guards shift uneasily. This corridor is meant to funnel fighters "
+            "back to the blood and sand, not spit them out into the world.",
+            delay=0.03,
+        )
+        time.sleep(0.6)
+
+        slow_print(
+            "One coin. Then another. You lay them out slowly, each clink echoing "
+            "louder than any cheer.",
+            delay=0.03,
+        )
+
+        # Actually pay the debt
+        player.money = leftover
+
+        slow_print(
+            "When the final coin lands, the clerk’s quill scratches your name one last time.",
+            delay=0.03,
+        )
+        slow_print(
+            'The ledger slams shut with a sound like a coffin lid. "Debt satisfied."',
+            delay=0.03,
+        )
+        time.sleep(0.7)
+
+        slow_print(
+            "At the far end of the hall, the arena master appears — "
+            "robes rich, expression poorer.",
+            delay=0.03,
+        )
+        slow_print(
+            "They study you, as if sheer will might turn coin back into chains.",
+            delay=0.03,
+        )
+        time.sleep(0.6)
+
+        slow_print(
+            'But law is law, even here. Finally, the master spits the word like poison: "Release them."',
+            delay=0.03,
+        )
+        time.sleep(0.6)
+
+        slow_print(
+            "A gate that has only ever opened to swallow you now grinds upward, "
+            "revealing a sliver of city sky.",
+            delay=0.03,
+        )
+        slow_print(
+            "Behind you, the crowd roars for the next match… "
+            "only to find the sand empty, the circle waiting for a fighter who will never return.",
+            delay=0.03,
+        )
+        time.sleep(0.8)
+
+        if leftover > 0:
+            slow_print(
+                f"You step into the daylight with {leftover} gold still in your pouch "
+                "and scars the city will not understand.",
+                delay=0.03,
+            )
+        else:
+            slow_print(
+                "You step into the daylight with empty pockets and a heartbeat that "
+                "finally belongs only to you.",
+                delay=0.03,
+            )
+        time.sleep(0.7)
+
+        print()
+        slow_print("YOU HAVE PAID YOUR DEBT.", delay=0.05)
+        slow_print("THE ARENA REMEMBERS YOUR NAME.", delay=0.05)
+        print()
+        input("Press Enter to leave the arena behind... ")
 
     # ----------------------------------------------------------------------
     # SHOP PHASE
@@ -232,8 +363,20 @@ class GameController:
                         delay=0.03,
                     )
 
+                    # --- Check if the player can now pay off their debt ---
+                    if player.money >= self.debt:
+                        self._run_debt_cleared_ending(player)
+                        return  # End the whole run / game
+
                     # Shop between rounds
                     self.run_shop_phase(player)
+
+                    # After shopping, it’s *possible* they still have enough to pay
+                    # (if they didn’t buy anything or negotiated well).
+                    if player.money >= self.debt:
+                        self._run_debt_cleared_ending(player)
+                        return
+
                     # Loop continues to next round with the same player
                     continue
 
