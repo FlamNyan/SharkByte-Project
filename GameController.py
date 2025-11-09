@@ -1,31 +1,14 @@
-import time
-import textwrap
 import random
+from UI import slow_print, slow_input, print_block
+from Characters import Character, enemy_templates
+from Combat import Combat
 
 debt = random.randint(250, 350)
-
-def slow_print(text, delay=0.03):
-    # Function that prints text character by character
-    # Delay determines how slow each key ends up getting typed
-    for char in text:
-        print(char, end="", flush=True)
-        time.sleep(delay)
-    print()  # newline at the end
-
-def slow_input(prompt, delay=0.03):
-    # Slow print, then input
-    slow_print(prompt, delay=delay)
-    return input("> ")
-
-
-def print_block(text, delay=0.03):
-    # Slow print function, but for longer text
-    wrapped = textwrap.fill(text, width=80)
-    slow_print(wrapped, delay=delay)
 
 def show_intro():
     # Clear screen (works on Windows, Mac, Linux)
     import os
+    import time
     os.system("cls" if os.name == "nt" else "clear")
 
     slow_print("[The screen is dark. Footsteps echo.]", delay=0.02)
@@ -36,8 +19,11 @@ def show_intro():
     time.sleep(0.5)
 
     print()
-    print_block('???: "You remember why you’re here, right? '
-                f'Not for glory. Not for honor. For debt. {debt} gold to be exact..."', delay=0.04)
+    print_block(
+        '???: "You remember why you’re here, right? '
+        f'Not for glory. Not for honor. For debt. {debt} gold, to be exact..."',
+        delay=0.04
+    )
     time.sleep(0.7)
 
     print()
@@ -45,14 +31,20 @@ def show_intro():
     time.sleep(0.5)
 
     print()
-    print_block('???: "Out there, nobody cares how you swing a sword. '
-                'They care if you choose right. '
-                'Attack, Block, Feint—three little moves between you and the grave."', delay=0.04)
+    print_block(
+        '???: "Out there, nobody cares how you swing a sword. '
+        'They care if you choose right. '
+        'Attack, Block, Feint—three little moves between you and the grave."',
+        delay=0.04
+    )
     time.sleep(0.9)
 
     print()
-    print_block('???: "Read them, break them, survive them. '
-                'Every duel you win buys you one more day. Every mistake… well."', delay=0.04)
+    print_block(
+        '???: "Read them, break them, survive them. '
+        'Every duel you win buys you one more day. Every mistake… well."',
+        delay=0.04
+    )
     time.sleep(0.9)
 
     print()
@@ -69,9 +61,13 @@ def show_intro():
     slow_print("ONLY YOUR CHOICES DECIDE THE REST.", delay=0.03)
     time.sleep(0.7)
 
-    # SLOW-PRINT THE PROMPT, THEN GET INPUT NORMALLY
     print()
-    player_name = slow_input('???: "Whether you live or die, who do you wish to be known as?"', delay=0.04).strip()
+    player_name = slow_input(
+        '???: "Whether you live or die, who do you wish to be known as?"',
+        delay=0.04
+    ).strip()
+    if not player_name:
+        player_name = "Unknown Challenger"
     time.sleep(0.7)
 
     print()
@@ -80,6 +76,40 @@ def show_intro():
     print()
     input("Press Enter to enter the arena... \n")
 
-# If you want this to run immediately when you start the script:
+    return player_name
+
+def main():
+    # Intro + player creation
+    player_name = show_intro()
+
+    player = Character(
+        name=player_name,
+        health=20,
+        money=0,
+        armor=5,
+        damage=5
+    )
+
+    # Pick a random enemy template and instantiate enemy
+    template = random.choice(enemy_templates)
+    enemy = Character(
+        name=template["name"],
+        health=template["health"],
+        money=0,
+        armor=template["armor"],
+        damage=template["damage"],
+    )
+    enemy.gold_min = template["gold_min"]
+    enemy.gold_max = template["gold_max"]
+
+    combat = Combat()
+    result = combat.run_battle(player, enemy)
+
+    slow_print(
+        f"\nEnd of demo. Result: {result}. "
+        f"You have {player.money} gold and {player.vigor} Vigor.",
+        delay=0.03
+    )
+
 if __name__ == "__main__":
-    show_intro()
+    main()

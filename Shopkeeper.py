@@ -2,39 +2,35 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import random
-import time 
+import time
+from UI import slow_print  # import from UI
 
-load_dotenv()  # load API key 
+load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
-
-client = OpenAI(api_key = api_key)
+client = OpenAI(api_key=api_key)
 
 class Shopkeeper:
-
     def __init__(self, name, personality):
-
         """
         personality: dictionary with keys:
-        'name' , 'description' , 'style' , 'cathphrases'
+        'name', 'description', 'style', 'catchphrases'
         """
-
         self.name = name
         self.personality = personality
 
-
     def negotiate(self, item, price, base_price):
-        catch = random.choide(self.personality["catchphrases"])
+        catch = random.choice(self.personality["catchphrases"])
         
         prompt = f"""
         You are a shopkeeper named {self.name}.
         Personality: {self.personality['name']} - {self.personality['description']}.
         Communication style: {self.personality['style']}.
-        Catch Phrase: "{catch}"
+        Catch phrase: "{catch}"
 
         The player is offering you {price} gold for a {item}.
         The base price is {base_price} gold.
 
-        You are in a fantasy world, respond in character and negotiate naturally.
+        You are in a fantasy world; respond in character and negotiate naturally.
         You may counter-offer, compliment, or be rude (but no cursing).
         End your response by stating your new price or if you accept.
         """
@@ -50,53 +46,51 @@ class Shopkeeper:
 
         return response.choices[0].message.content.strip()
 
-
-
 Greedy = {
-        "name": "Greedy Merchant Joe",
-        "description": "Always tryng to get the most amount of money out of the player posssible",
-        "style": "Quick-witted, arrogant, does not give up easy",
-        "catchphrases": ["Nice try kid", "You thought you had me huh?"]
-
-
-    },
+    "name": "Greedy Merchant Joe",
+    "description": "Always trying to squeeze as much money from the player as possible.",
+    "style": "Quick-witted, arrogant, and stubborn.",
+    "catchphrases": ["Nice try, kid.", "You thought you had me, huh?"],
+}
 
 Polite = {
-        "name": "Town Merchant Brok",
-        "description": "Generous and willing to lower his prices, polite as wel",
-        "style": "warm, kind, easy to negotiate with",
-        "catchphrases": ["I'm sure we can work something out", "Good luck on your adventure"]
-
-
-    }
+    "name": "Town Merchant Brok",
+    "description": "Generous and willing to lower his prices; polite as well.",
+    "style": "Warm, kind, and easy to negotiate with.",
+    "catchphrases": ["I'm sure we can work something out.", "Good luck on your adventure."],
+}
 
 personalities = [Greedy, Polite]
 
-def start_shop_timer():
-    start_time = time.perf_counter()
-    time_now = time.perf_counter()
-    elapsed_time = time_now - start_time
+def shop_eviction(shopkeeper):
+    slow_print(f'{shopkeeper["name"]}: "Time is money, friend. You\'re done here."', delay=0.04)
 
-    if (elapsed_time >= 30): # placeholder amount of time (will change likely to 60 seconds)
-        shop_eviction()
+def run_shop(shopkeeper_dict, player):
+    clerk = Shopkeeper(shopkeeper_dict["name"], shopkeeper_dict)
 
-def shop_eviction():
+    shop_entry_time = time.perf_counter()
+    kicked_out = False
 
-    # holds automated kick out text and ends the shopkeeper functions
-    pass
+    while True:
+        now = time.perf_counter()
+        elapsed = now - shop_entry_time
 
+        if elapsed >= 30:
+            shop_eviction(shopkeeper_dict)
+            kicked_out = True
+            break
 
+        slow_print("\nYou are in the shop. What do you do?", delay=0.02)
+        slow_print("1. Make an offer", delay=0.02)
+        slow_print("2. Leave shop", delay=0.02)
+        choice = input("> ").strip()
 
-def main():
+        if choice == "2":
+            break
+        elif choice == "1":
+            # Ask what item/price, then call clerk.negotiate(...)
+            pass
+        else:
+            slow_print("The shopkeeper stares at you, confused.", delay=0.02)
 
-    
-
-   # Hero1 = MainCharacter("Player")
-
-    #Cyclops = Enemy ("Cyclops", 120, 10 )
-
-    #Clerk1 = Shopkeeper("Joe", Greedy)
-    #Clerk2 = Shopkeeper("Brok", Polite)
-
-    
-    pass
+    return kicked_out
