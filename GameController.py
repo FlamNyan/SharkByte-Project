@@ -11,7 +11,7 @@ def show_intro():
     import time
     os.system("cls" if os.name == "nt" else "clear")
 
-    slow_print("[The screen is dark. Footsteps echo.]", delay=0.02)
+    slow_print("[The arena is dark. Footsteps echo.]", delay=0.02)
     time.sleep(0.5)
 
     print()
