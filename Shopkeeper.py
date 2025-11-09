@@ -77,7 +77,7 @@ class Shopkeeper:
 
         return text
 
-    def sell(self, character, time_limit_seconds=30):
+    def sell(self, character, time_limit_seconds=60):
         """
         Run one shop visit:
         - Player picks an item
@@ -95,15 +95,18 @@ class Shopkeeper:
         for i, itm in enumerate(ITEMS, 1):
             slow_print(f"{i}. {itm['name']}", delay=0.01)
 
+        print()
+
         try:
             choice = int(input("Enter the number of the item you want to buy: ")) - 1
-            offer = int(input("How much gold do you offer? "))
+            offer = int(input("How much gold do you offer? \n"))
+            print()
         except ValueError:
-            slow_print("You mumble something unintelligible. The merchant just sighs.", delay=0.02)
+            slow_print("You mumble something unintelligible. The merchant just sighs.\n", delay=0.02)
             return False
 
         if not (0 <= choice < len(ITEMS)):
-            slow_print("You point at the wall. That is not for sale.", delay=0.02)
+            slow_print("You point at the wall. That is not for sale.\n", delay=0.02)
             return False
 
         selected_item = ITEMS[choice]
@@ -120,7 +123,7 @@ class Shopkeeper:
                 # Time out flavor
                 slow_print(
                     f'\n{self.name}: "If you stare any longer, I\'ll start charging for the view. '
-                    'Come back when you can decide."',
+                    'Come back when you can decide."\n',
                     delay=0.02,
                 )
                 break
@@ -149,7 +152,7 @@ class Shopkeeper:
                     purchased = True
                 else:
                     slow_print(
-                        "You pat your pockets and realize they're lighter than your mouth. No deal.",
+                        "You pat your pockets and realize they're lighter than your mouth. No deal. \n",
                         delay=0.02,
                     )
                 break
@@ -157,23 +160,23 @@ class Shopkeeper:
             # Mood hard cap: var == 7 means 'Refuses to negotiate further'
             if var >= 7:
                 slow_print(
-                    f'{self.name}: "Enough! Haggling with you is costing me coin. Out."',
+                    f'{self.name}: "Enough! Haggling with you is costing me coin. Out."\n',
                     delay=0.02,
                 )
                 break
 
             try:
-                offer = int(input("Make a new offer: "))
+                offer = int(input("Make a new offer: \n"))
             except ValueError:
                 slow_print(
-                    f'{self.name}: "If you can\'t count your own gold, we\'re done here."',
+                    f'{self.name}: "If you can\'t count your own gold, we\'re done here."\n',
                     delay=0.02,
                 )
                 break
 
         if not purchased and not self.is_accepted and var < 7:
             slow_print(
-                f'{self.name}: "Time is money, friend. Come back when you know what you want."',
+                f'{self.name}: "Time is money, friend. Come back when you know what you want."\n',
                 delay=0.02,
             )
 

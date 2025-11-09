@@ -212,10 +212,12 @@ class GameController:
                 break
 
             # Offer the player a small menu in the shop
-            slow_print("\nYou are in the shop. What do you do?", delay=0.02)
+            slow_print("You are in the shop. What do you do?", delay=0.02)
+            print()
             slow_print("1. Haggle for an item", delay=0.02)
             slow_print("2. Leave shop", delay=0.02)
             choice = input("> ").strip()
+            print()
 
             if choice == "2":
                 break
