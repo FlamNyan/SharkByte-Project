@@ -478,8 +478,8 @@ class Combat:
     # ------------------------
     def _get_player_action_with_vigor(self, player):
         """Menu when the player has enough Vigor for specials."""
-        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.01)
-        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.01)
+        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.02)
+        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.02)
         slow_print(
             "1. Heavy Attack (Uses 2 Vigor) – A crushing blow that "
             "deals greatly increased damage if it connects.",
@@ -505,7 +505,7 @@ class Combat:
         if choice in ("3", "f", "feint"):
             return "feint"
 
-        slow_print("You fumble your advantage and default to a basic guard...", delay=0.01)
+        slow_print("You fumble your advantage and default to a basic guard...", delay=0.02)
         return "block"
 
     def _get_player_action_basic(self, player):
@@ -531,12 +531,12 @@ class Combat:
         if choice in ("3", "f", "feint"):
             return "feint"
 
-        slow_print("You hesitate and default to a shaky guard...", delay=0.01)
+        slow_print("You hesitate and default to a shaky guard...", delay=0.02)
         return "block"
 
     def _get_player_action(self, player):
         """Ask the player for an action and return the logical action string."""
-        slow_print("\nChoose your move:", delay=0.01)
+        slow_print("\nChoose your move:", delay=0.02)
 
         if player.vigor >= 2:
             return self._get_player_action_with_vigor(player)
@@ -567,7 +567,7 @@ class Combat:
     # ------------------------
     def run_battle(self, player, enemy):
         """Main battle loop: handles turns until either side drops to 0 HP."""
-        slow_print("\nYou step into the corridor...", delay=0.02)
+        slow_print("\nYou step into the corridor...", delay=0.03)
         time.sleep(0.5)
         slow_print(f"You encountered a {enemy.name}!", delay=0.02)
         slow_print(f"{enemy.name} — HP: {enemy.health} | Armor: {enemy.armor}", delay=0.02)
@@ -609,14 +609,14 @@ class Combat:
             slow_print(
                 f"You {player_action_text[player_action]} and the {enemy.name} "
                 f"{enemy_action_text[enemy_action]}...",
-                delay=0.02,
+                delay=0.03,
             )
             time.sleep(0.3)
 
             # Resolve the turn
             outcome_lines = self.resolve_turn(player, enemy, player_action, enemy_action)
             for line in outcome_lines:
-                slow_print(line, delay=0.01)
+                slow_print(line, delay=0.02)
                 time.sleep(0.05)
 
             # Short pause before next round
@@ -629,30 +629,30 @@ class Combat:
         # End of battle
         print()
         if player.health <= 0 and enemy.health <= 0:
-            slow_print("Both you and your foe collapse to the ground...", delay=0.02)
+            slow_print("Both you and your foe collapse to the ground...", delay=0.03)
             slow_print(
                 "The crowd roars in disbelief, hungry for blood and eager for the next execution.",
-                delay=0.02,
+                delay=0.03,
             )
             slow_print(
                 '???: "Do you wish to see the story of another criminal?"',
-                delay=0.02,
+                delay=0.03,
             )
             return "double_ko"
 
         if player.health <= 0:
-            slow_print("Your vision fades. The dungeon claims another soul.", delay=0.02)
+            slow_print("Your vision fades. The dungeon claims another soul.", delay=0.03)
             slow_print(
                 "The crowd erupts in wild delight, chanting for the next poor soul to enter the sand.",
-                delay=0.02,
+                delay=0.03,
             )
             slow_print(
                 '???: "Do you wish to see the story of another criminal?"',
-                delay=0.02,
+                delay=0.03,
             )
             return "player_dead"
 
-        slow_print(f"The {enemy.name} falls. You stand victorious.", delay=0.02)
+        slow_print(f"The {enemy.name} falls. You stand victorious.", delay=0.03)
         # handle gold loot if enemy has gold range
         gold_min = getattr(enemy, "gold_min", 0)
         gold_max = getattr(enemy, "gold_max", 0)
@@ -662,5 +662,5 @@ class Combat:
             gold_loot = gold_min
         player.money += gold_loot
         if gold_loot > 0:
-            slow_print(f"You loot {gold_loot} gold.", delay=0.02)
+            slow_print(f"You loot {gold_loot} gold.", delay=0.03)
         return "enemy_dead"
