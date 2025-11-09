@@ -1,5 +1,3 @@
-# Combat.py
-
 import time
 import random
 from UI import slow_print
@@ -59,7 +57,12 @@ class Combat:
                 f"{e.name} steps in with a standard strike, but "
                 f"{p.name}'s heavy swing blows straight through!"
             )
-            self._apply_heavy_vs_normal_damage(attacker=p, defender=e, base_dmg=base_p_dmg, messages=messages)
+            self._apply_heavy_vs_normal_damage(
+                attacker=p,
+                defender=e,
+                base_dmg=base_p_dmg,
+                messages=messages,
+            )
             return messages
 
         # Enemy heavy vs player normal
@@ -68,7 +71,12 @@ class Combat:
                 f"{p.name} rushes in with a quick attack, but "
                 f"{e.name}'s heavy swing smashes straight through!"
             )
-            self._apply_heavy_vs_normal_damage(attacker=e, defender=p, base_dmg=base_e_dmg, messages=messages)
+            self._apply_heavy_vs_normal_damage(
+                attacker=e,
+                defender=p,
+                base_dmg=base_e_dmg,
+                messages=messages,
+            )
             return messages
 
         # Normal vs normal OR heavy vs heavy: parry
@@ -247,7 +255,9 @@ class Combat:
 
         # Normal Attack vs Block
         if p_fortify:
-            messages.append(f"{e.name} lunges, but {p.name}'s fortified stance deflects the blow!")
+            messages.append(
+                f"{e.name} lunges, but {p.name}'s fortified stance deflects the blow!"
+            )
             messages.append(f"{p.name}'s armor remains untouched. (0 Armor lost)")
             p.vigor += 1
             messages.append(f"{p.name} steels their resolve. (+1 Vigor)")
@@ -293,7 +303,9 @@ class Combat:
         if p_heavy:
             crit_mult *= 2  # Heavy makes crit even worse
         crit = base_p_dmg * crit_mult
-        messages.append(f"{e.name} tries something clever, but {p.name} reads it perfectly!")
+        messages.append(
+            f"{e.name} tries something clever, but {p.name} reads it perfectly!"
+        )
         self.apply_hp_damage(e, crit)
         messages.append(f"Critical hit! {e.name} takes {crit} HP damage.")
         return messages
@@ -328,7 +340,9 @@ class Combat:
             )
             messages.append(f"{p.name}'s armor takes no damage. (0 Armor lost)")
         else:
-            messages.append(f"{p.name} turtles up, but {e.name}'s feint slips past the guard!")
+            messages.append(
+                f"{p.name} turtles up, but {e.name}'s feint slips past the guard!"
+            )
             self.apply_armor_damage(p, armor_hit)
             messages.append(f"{p.name}'s armor takes the full force. (-{armor_hit} Armor)")
         return messages
@@ -352,7 +366,9 @@ class Combat:
         messages = []
         chip_p = max(1, base_e_dmg // 4)
         chip_e = max(1, base_p_dmg // 4)
-        messages.append("Both fighters feint at the same time, stumbling into each other awkwardly.")
+        messages.append(
+            "Both fighters feint at the same time, stumbling into each other awkwardly."
+        )
         self.apply_hp_damage(p, chip_p)
         self.apply_hp_damage(e, chip_e)
         messages.append(f"{p.name} takes {chip_p} chip damage.")
@@ -432,20 +448,21 @@ class Combat:
     # ------------------------
     def _get_player_action_with_vigor(self, player):
         """Menu when the player has enough Vigor for specials."""
-        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.02)
+        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.01)
+        slow_print("You feel power surging through you. You can spend 2 Vigor:", delay=0.01)
         slow_print(
             "1. Heavy Attack (Uses 2 Vigor) – A crushing blow that "
             "deals greatly increased damage if it connects.",
-            delay=0.02,
+            delay=0.01,
         )
         slow_print(
             "2. Fortify Guard (Uses 2 Vigor) – Supercharged defense: "
             "your guard this turn doesn’t lose armor.",
-            delay=0.02,
+            delay=0.01,
         )
         slow_print(
             "3. Feint – A risky fake-out. Punishes Blocks, but loses badly to direct Attacks.",
-            delay=0.02,
+            delay=0.01,
         )
 
         choice = input("> ").strip().lower()
@@ -458,22 +475,22 @@ class Combat:
         if choice in ("3", "f", "feint"):
             return "feint"
 
-        slow_print("You fumble your advantage and default to a basic guard...", delay=0.02)
+        slow_print("You fumble your advantage and default to a basic guard...", delay=0.01)
         return "block"
 
     def _get_player_action_basic(self, player):
         """Menu when the player does not have enough Vigor for specials."""
         slow_print(
             "1. Attack – A standard strike. Strong against Feints, weak into solid Blocks.",
-            delay=0.02,
+            delay=0.01,
         )
         slow_print(
             "2. Block – Raise your guard. Mitigates damage and can build Vigor.",
-            delay=0.02,
+            delay=0.01,
         )
         slow_print(
             "3. Feint – A risky fake-out. Punishes Blocks, but loses badly to Attacks.",
-            delay=0.02,
+            delay=0.01,
         )
 
         choice = input("> ").strip().lower()
@@ -484,12 +501,12 @@ class Combat:
         if choice in ("3", "f", "feint"):
             return "feint"
 
-        slow_print("You hesitate and default to a shaky guard...", delay=0.02)
+        slow_print("You hesitate and default to a shaky guard...", delay=0.01)
         return "block"
 
     def _get_player_action(self, player):
         """Ask the player for an action and return the logical action string."""
-        slow_print("\nChoose your move:", delay=0.02)
+        slow_print("\nChoose your move:", delay=0.01)
 
         if player.vigor >= 2:
             return self._get_player_action_with_vigor(player)
@@ -520,10 +537,10 @@ class Combat:
     # ------------------------
     def run_battle(self, player, enemy):
         """Main battle loop: handles turns until either side drops to 0 HP."""
-        slow_print("\nYou step into the corridor...", delay=0.03)
+        slow_print("\nYou step into the corridor...", delay=0.02)
         time.sleep(0.5)
-        slow_print(f"You encountered a {enemy.name}!", delay=0.03)
-        slow_print(f"{enemy.name} — HP: {enemy.health} | Armor: {enemy.armor}", delay=0.03)
+        slow_print(f"You encountered a {enemy.name}!", delay=0.02)
+        slow_print(f"{enemy.name} — HP: {enemy.health} | Armor: {enemy.armor}", delay=0.02)
 
         while player.health > 0 and enemy.health > 0:
             # Turn status
@@ -562,14 +579,14 @@ class Combat:
             slow_print(
                 f"You {player_action_text[player_action]} and the {enemy.name} "
                 f"{enemy_action_text[enemy_action]}...",
-                delay=0.03,
+                delay=0.02,
             )
             time.sleep(0.3)
 
             # Resolve the turn
             outcome_lines = self.resolve_turn(player, enemy, player_action, enemy_action)
             for line in outcome_lines:
-                slow_print(line, delay=0.02)
+                slow_print(line, delay=0.01)
                 time.sleep(0.05)
 
             # Short pause before next round
@@ -582,13 +599,30 @@ class Combat:
         # End of battle
         print()
         if player.health <= 0 and enemy.health <= 0:
-            slow_print("Both you and your foe collapse to the ground...", delay=0.03)
+            slow_print("Both you and your foe collapse to the ground...", delay=0.02)
+            slow_print(
+                "The crowd roars in disbelief, hungry for blood and eager for the next execution.",
+                delay=0.02,
+            )
+            slow_print(
+                '???: "Do you wish to see the story of another criminal?"',
+                delay=0.02,
+            )
             return "double_ko"
+
         if player.health <= 0:
-            slow_print("Your vision fades. The dungeon claims another soul.", delay=0.03)
+            slow_print("Your vision fades. The dungeon claims another soul.", delay=0.02)
+            slow_print(
+                "The crowd erupts in wild delight, chanting for the next poor soul to enter the sand.",
+                delay=0.02,
+            )
+            slow_print(
+                '???: "Do you wish to see the story of another criminal?"',
+                delay=0.02,
+            )
             return "player_dead"
 
-        slow_print(f"The {enemy.name} falls. You stand victorious.", delay=0.03)
+        slow_print(f"The {enemy.name} falls. You stand victorious.", delay=0.02)
         # handle gold loot if enemy has gold range
         gold_min = getattr(enemy, "gold_min", 0)
         gold_max = getattr(enemy, "gold_max", 0)
@@ -598,5 +632,5 @@ class Combat:
             gold_loot = gold_min
         player.money += gold_loot
         if gold_loot > 0:
-            slow_print(f"You loot {gold_loot} gold.", delay=0.03)
+            slow_print(f"You loot {gold_loot} gold.", delay=0.02)
         return "enemy_dead"

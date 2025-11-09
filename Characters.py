@@ -7,8 +7,6 @@ class Character:
         self.damage = damage
         # Vigor resource used by combat (starts at 0)
         self.vigor = 0
-        # Whether the next guard is fortified (not strictly needed now, but useful)
-        self.fortify_ready = False
 
 enemy_templates = [
     {
