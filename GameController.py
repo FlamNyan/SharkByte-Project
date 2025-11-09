@@ -19,12 +19,9 @@ class GameController:
 
         # Core systems
         self.combat = Combat()
-        # You can pick a fixed personality or randomize
-        self.shopkeeper_personality = random.choice([greedy, polite])
-        self.shopkeeper = Shopkeeper(
-            self.shopkeeper_personality["name"],
-            self.shopkeeper_personality,
-        )
+        # We no longer fix a single shopkeeper for the whole run;
+        # merchants are randomized per shop visit.
+        # (Kept the imports of greedy/polite to choose from each time.)
 
     # ----------------------------------------------------------------------
     # INTRO
@@ -121,21 +118,32 @@ class GameController:
         """
         Create a new enemy based on a random template, scaled by round.
 
-        Enemies scale up *aggressively* with each round:
-        - More HP
-        - More Armor
-        - More Damage
-        - More gold carried
+        self.round_counter = number of enemies defeated so far in this run.
+
+        Fight index (for the next enemy) is:
+            fight_index = self.round_counter + 1
+
+        Scaling:
+            - Round 1: pure template stats (no scaling)
+            - From round 2 onward:
+                * +3 HP per round
+                * +2 Armor per round  (more aggressive armor scaling)
+                * +1 base Damage per round
+                * Gold: grows very slowly (barely increasing)
+            - Starting Vigor:
+                * Rounds 1–3: 0 Vigor
+                * Rounds 4–7: 1 Vigor
+                * Rounds 8+: 2 Vigor
         """
         template = random.choice(enemy_templates)
 
-        # Upcoming round number is 1-based (first fight = round 1)
-        round_number = max(1, self.round_counter + 1)
+        fight_index = self.round_counter + 1  # 1,2,3,...
+        scale = max(0, fight_index - 1)       # 0,1,2,...
 
-        # Stronger scaling per round
-        scaled_health = template["health"] + round_number * 3
-        scaled_armor = template["armor"] + round_number * 1
-        scaled_damage = template["damage"] + (round_number // 2) + 1
+        # --- STAT SCALING ---
+        scaled_health = template["health"] + scale * 3
+        scaled_armor = template["armor"] + scale * 2   # more armor per round
+        scaled_damage = template["damage"] + scale     # damage ramps each round
 
         enemy = Character(
             name=template["name"],
@@ -145,27 +153,42 @@ class GameController:
             damage=scaled_damage,
         )
 
-        # Gold carried also scales up with rounds
+        # --- GOLD SCALING (BARELY INCREASING) ---
         base_min = template["gold_min"]
         base_max = template["gold_max"]
-        bonus_min = round_number * 4
-        bonus_max = round_number * 6
+
+        # Very gentle gold growth
+        bonus_min = scale // 2
+        bonus_max = scale
 
         enemy.gold_min = base_min + bonus_min
         enemy.gold_max = base_max + bonus_max
 
-        # Attach their preferred action so the AI can read it
+        # Preferred action for AI
         enemy.preferred_action = template.get("preferred_action")
+
+        # --- STARTING VIGOR BASED ON ROUND ---
+        if fight_index >= 8:
+            enemy.vigor = 2
+        elif fight_index >= 4:
+            enemy.vigor = 1
+        else:
+            enemy.vigor = 0  # already default, but explicit for clarity
+
         return enemy
 
     # ----------------------------------------------------------------------
     # DEBT-CLEARED ENDING
     # ----------------------------------------------------------------------
-    def _run_debt_cleared_ending(self, player: Character):
+    def _run_debt_cleared_ending(self, player: Character) -> str:
         """
         Narrative + ending when the player has enough gold to pay their debt.
         Consumes the debt in gold, plays a cinematic text sequence,
-        and then returns to let the caller end the run.
+        then asks if the player wants to see another criminal.
+
+        Returns:
+            "quit"      -> player chose to stop
+            "continue"  -> player wants to see another challenger
         """
         # Capture pre-payment gold for flavor
         total_gold = player.money
@@ -285,7 +308,15 @@ class GameController:
         slow_print("YOU HAVE PAID YOUR DEBT.", delay=0.05)
         slow_print("THE ARENA REMEMBERS YOUR NAME.", delay=0.05)
         print()
-        input("Press Enter to leave the arena behind... ")
+
+        # Same style as death prompt:
+        answer = input(
+            '???: "Do you wish to see the story of another criminal?" (y/n) '
+        ).strip().lower()
+
+        if answer in ("n", "no", "q", "quit", "exit"):
+            return "quit"
+        return "continue"
 
     # ----------------------------------------------------------------------
     # SHOP PHASE
@@ -300,6 +331,7 @@ class GameController:
         - Being annoyed / kicking you out
 
         Here we just:
+        - Randomize which merchant you see this round
         - Let the player choose whether to haggle or leave
         - Then give a single, clean exit line and move on.
         """
@@ -309,6 +341,10 @@ class GameController:
             "wedged into the arena tunnels...",
             delay=0.03,
         )
+
+        # Randomize merchant *per round*
+        personality = random.choice([greedy, polite])
+        shopkeeper = Shopkeeper(personality["name"], personality)
 
         while True:
             slow_print("\nYou are in the shop. What do you do?", delay=0.02)
@@ -321,12 +357,12 @@ class GameController:
                 break
             if choice == "1":
                 # Reset shopkeeper state at the start of each haggle
-                self.shopkeeper.is_accepted = False
-                self.shopkeeper.last_counter_offer = None
+                shopkeeper.is_accepted = False
+                shopkeeper.last_counter_offer = None
 
                 # The shopkeeper handles all flavor + timeouts.
                 # Pass the current round so items scale with progression.
-                self.shopkeeper.sell(player, self.round_counter)
+                shopkeeper.sell(player, self.round_counter)
                 break
 
             slow_print("The shopkeeper stares at you, confused.", delay=0.02)
@@ -362,7 +398,7 @@ class GameController:
             player_name = self.show_intro()
             player = Character(
                 name=player_name,
-                health=20,
+                health=15,
                 money=0,
                 armor=5,
                 damage=5,
@@ -388,8 +424,12 @@ class GameController:
 
                     # --- Check if the player can now pay off their debt ---
                     if player.money >= self.debt:
-                        self._run_debt_cleared_ending(player)
-                        return  # End the whole run / game
+                        end_choice = self._run_debt_cleared_ending(player)
+                        if end_choice == "quit":
+                            return
+                        # Wants to see another criminal: speed up intro, new run
+                        self.is_retry = True
+                        break  # break inner loop, outer while restarts
 
                     # Shop between rounds
                     self.run_shop_phase(player)
@@ -397,8 +437,11 @@ class GameController:
                     # After shopping, it’s *possible* they still have enough to pay
                     # (if they didn’t buy anything or negotiated well).
                     if player.money >= self.debt:
-                        self._run_debt_cleared_ending(player)
-                        return
+                        end_choice = self._run_debt_cleared_ending(player)
+                        if end_choice == "quit":
+                            return
+                        self.is_retry = True
+                        break  # new challenger
 
                     # Loop continues to next round with the same player
                     continue

@@ -92,9 +92,9 @@ class Shopkeeper:
               * max 7 steps (global 'var')
               * hard time limit (time_limit_seconds)
           - Item has a randomized hidden "base price" for this visit,
-            which scales with the current round_number.
-          - On purchase, the item grants a stat buff that ALSO scales
-            with round_number, and prints a clear "+X" message.
+            which scales aggressively with the current round_number.
+          - On purchase, the item grants a stat buff that scales much more
+            slowly than price (every few rounds) and prints a clear "+X" message.
           - Returns True if player bought something, False otherwise.
         """
         global var
@@ -104,6 +104,12 @@ class Shopkeeper:
 
         # Make sure round_number is at least 1
         tier = max(1, int(round_number))
+
+        # Separate scaling:
+        # - step_price: increases EVERY round -> prices ramp hard
+        # - step_stats: only increases every 3 rounds -> item power ramps slowly
+        step_price = max(0, tier - 1)          # 0,1,2,3,...
+        step_stats = max(0, (tier - 1) // 3)   # 0 for rounds 1–3, 1 for 4–6, etc.
 
         slow_print(
             f'{self.name}: "Welcome, traveler! Take a look at my wares."',
@@ -133,13 +139,13 @@ class Shopkeeper:
         prevoffer = 0
 
         # --- Scaled base price for this visit (per round) ---
-        base_price = selected_item["base_price"] + (tier - 1) * selected_item["price_per_round"]
+        base_price = selected_item["base_price"] + step_price * selected_item["price_per_round"]
         if base_price < 1:
             base_price = 1
 
-        # Random range: 80% - 140% of the scaled base price, at least 1–2 gold wide
+        # Random range: 80% - 160% of the scaled base price, at least 1–2 gold wide
         min_hidden = max(1, int(base_price * 0.8))
-        max_hidden = max(min_hidden + 1, int(base_price * 1.4))
+        max_hidden = max(min_hidden + 1, int(base_price * 1.6))
         hidden_price = random.randint(min_hidden, max_hidden)
 
         shop_entry_time = time.perf_counter()
@@ -184,11 +190,11 @@ class Shopkeeper:
                         character.inventory = []
                     character.inventory.append(selected_item)
 
-                    # --- Apply stat buffs based on item type & round tier ---
+                    # --- Apply stat buffs based on item type & step_stats ---
                     if selected_item["type"] == "weapon":
                         base_dmg = selected_item["base_damage"]
                         growth = selected_item["damage_per_round"]
-                        dmg_bonus = base_dmg + (tier - 1) * growth
+                        dmg_bonus = base_dmg + step_stats * growth
                         character.damage += dmg_bonus
                         slow_print(
                             f"You feel the weight of the {selected_item['name']} settle into your hand. "
@@ -198,7 +204,7 @@ class Shopkeeper:
                     elif selected_item["type"] == "defense":
                         base_def = selected_item["base_defense"]
                         growth = selected_item["defense_per_round"]
-                        def_bonus = base_def + (tier - 1) * growth
+                        def_bonus = base_def + step_stats * growth
                         character.armor += def_bonus
                         slow_print(
                             f"The {selected_item['name']} wraps around you like a second skin. "
@@ -273,28 +279,28 @@ polite = {
 
 PERSONALITIES = [greedy, polite]
 
-# ------------------- Items (SCALING PER ROUND) -------------------
-# These are base values; scaling happens in sell() using round_number.
+# ------------------- Items -------------------
+# Base values; price scaling is aggressive, power scaling is slow.
 SWORD = {
     "name": "Sword",
     "type": "weapon",
-    # Base buff and how much extra per round
+    # Base buff and how much extra per *stat step* (every 3 rounds)
     "base_damage": 5,
-    "damage_per_round": 2,
-    # Economy: base price and price gain per round
+    "damage_per_round": 1,   # small scaling for power
+    # Economy: base price and price gain per *round*
     "base_price": 15,
-    "price_per_round": 5,
+    "price_per_round": 4,
 }
 
 ARMOR = {
     "name": "Armor",
     "type": "defense",
-    # Base buff and how much extra per round
+    # Base buff and how much extra per *stat step* (every 3 rounds)
     "base_defense": 5,
-    "defense_per_round": 3,
-    # Economy: base price and price gain per round
+    "defense_per_round": 1,  # small scaling for power
+    # Economy: base price and price gain per *round*
     "base_price": 18,
-    "price_per_round": 4,
+    "price_per_round": 5,
 }
 
 ITEMS = [SWORD, ARMOR]

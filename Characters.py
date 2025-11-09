@@ -7,7 +7,7 @@ class Character:
         self.damage = damage
         # Simple inventory list for items bought in the shop
         self.inventory = []
-        # Vigor resource used by combat (starts at 0)
+        # Vigor resource used by combat (starts at 0 for player & enemies)
         self.vigor = 0
 
 
@@ -16,19 +16,19 @@ enemy_templates = [
         "name": "Goblin Cutthroat",
         "health": 12,
         "armor": 3,
-        "damage": 4,
-        "gold_min": 10,
-        "gold_max": 20,
+        "damage": 8,       
+        "gold_min": 8,
+        "gold_max": 16,
         # Nimble and tricksy – likes feints
         "preferred_action": "feint",
     },
     {
         "name": "Skeleton Knight",
         "health": 18,
-        "armor": 5,
+        "armor": 6,
         "damage": 5,
-        "gold_min": 15,
-        "gold_max": 30,
+        "gold_min": 12,
+        "gold_max": 22,
         # Heavily armored – likes to block and punish
         "preferred_action": "block",
     },
@@ -37,8 +37,8 @@ enemy_templates = [
         "health": 16,
         "armor": 4,
         "damage": 6,
-        "gold_min": 20,
-        "gold_max": 40,
+        "gold_min": 14,
+        "gold_max": 26,
         # Aggressive brawler – likes to attack
         "preferred_action": "attack",
     },
