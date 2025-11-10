@@ -21,7 +21,6 @@ class GameController:
         self.combat = Combat()
         # We no longer fix a single shopkeeper for the whole run;
         # merchants are randomized per shop visit.
-        # (Kept the imports of greedy/polite to choose from each time.)
 
     # ----------------------------------------------------------------------
     # INTRO
@@ -112,11 +111,16 @@ class GameController:
         return player_name
 
     # ----------------------------------------------------------------------
-    # ENEMY CREATION (WITH ROUND SCALING)
+    # ENEMY CREATION (WITH ROUND SCALING + WEIGHTED SPAWN)
     # ----------------------------------------------------------------------
     def _create_enemy(self) -> Character:
         """
-        Create a new enemy based on a random template, scaled by round.
+        Create a new enemy based on a weighted random template, scaled by round.
+
+        Spawn weights (from enemy_templates['spawn_weight']):
+            - Goblin Cutthroat: 45%
+            - Skeleton Knight : 35%
+            - Bandit Raider   : 20%
 
         self.round_counter = number of enemies defeated so far in this run.
 
@@ -127,7 +131,7 @@ class GameController:
             - Round 1: pure template stats (no scaling)
             - From round 2 onward:
                 * +3 HP per round
-                * +2 Armor per round  (more aggressive armor scaling)
+                * +2 Armor per round
                 * +1 base Damage per round
                 * Gold: grows very slowly (barely increasing)
             - Starting Vigor:
@@ -135,7 +139,9 @@ class GameController:
                 * Rounds 4–7: 1 Vigor
                 * Rounds 8+: 2 Vigor
         """
-        template = random.choice(enemy_templates)
+        # Pull weights from the templates so data & logic stay together
+        weights = [tpl.get("spawn_weight", 1) for tpl in enemy_templates]
+        template = random.choices(enemy_templates, weights=weights, k=1)[0]
 
         fight_index = self.round_counter + 1  # 1,2,3,...
         scale = max(0, fight_index - 1)       # 0,1,2,...
