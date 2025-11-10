@@ -285,7 +285,7 @@ SWORD = {
     "name": "Sword",
     "type": "weapon",
     # Base buff and how much extra per *stat step* (every 3 rounds)
-    "base_damage": 5,
+    "base_damage": 3,
     "damage_per_round": 1,   # small scaling for power
     # Economy: base price and price gain per *round*
     "base_price": 15,
