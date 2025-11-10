@@ -17,7 +17,7 @@ enemy_templates = [
         "health": 12,
         "armor": 3,
         "damage": 8,       
-        "gold_min": 8,
+        "gold_min": 10,
         "gold_max": 16,
         # Nimble and tricksy – likes feints
         "preferred_action": "feint",
@@ -27,7 +27,7 @@ enemy_templates = [
         "health": 18,
         "armor": 6,
         "damage": 5,
-        "gold_min": 12,
+        "gold_min": 14,
         "gold_max": 22,
         # Heavily armored – likes to block and punish
         "preferred_action": "block",
@@ -37,7 +37,7 @@ enemy_templates = [
         "health": 16,
         "armor": 4,
         "damage": 6,
-        "gold_min": 14,
+        "gold_min": 16,
         "gold_max": 26,
         # Aggressive brawler – likes to attack
         "preferred_action": "attack",
