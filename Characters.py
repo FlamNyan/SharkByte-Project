@@ -26,7 +26,7 @@ enemy_templates = [
         "name": "Skeleton Knight",
         "health": 18,
         "armor": 6,
-        "damage": 5,
+        "damage": 4,
         "gold_min": 14,
         "gold_max": 22,
         # Heavily armored – likes to block and punish
