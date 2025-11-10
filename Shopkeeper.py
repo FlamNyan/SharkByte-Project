@@ -288,7 +288,7 @@ SWORD = {
     "base_damage": 3,
     "damage_per_round": 1,   # small scaling for power
     # Economy: base price and price gain per *round*
-    "base_price": 15,
+    "base_price": 14,
     "price_per_round": 4,
 }
 
@@ -296,10 +296,10 @@ ARMOR = {
     "name": "Armor",
     "type": "defense",
     # Base buff and how much extra per *stat step* (every 3 rounds)
-    "base_defense": 5,
+    "base_defense": 6,
     "defense_per_round": 1,  # small scaling for power
     # Economy: base price and price gain per *round*
-    "base_price": 18,
+    "base_price": 16,
     "price_per_round": 5,
 }
 
